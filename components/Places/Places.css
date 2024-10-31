@@ -1,0 +1,212 @@
+body {
+  font-family: 'Poppins' ;
+  margin: 0;
+  padding: 0;
+  
+}
+
+.places-card-wrapper {
+  font-family: 'Poppins';
+  padding: 40px 0; /* Equivalent to py-10 */
+  max-width: 72rem; /* Equivalent to max-w-7xl (1120px) */
+  margin-left: auto;
+  margin-right: auto; /* Equivalent to mx-auto */
+  
+}
+.container-box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.featured-place {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  height: 600px;
+}
+
+.secondary-places {
+  display: flex;
+  gap: 20px;
+  height: 600px;
+}
+
+.left-card {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.right-cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+}
+
+.place-card {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.place-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.place-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 15px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  color: white;
+}
+
+.place-name {
+  margin: 0 0 5px 0;
+  font-size: 25px;
+  font-weight: 550;
+}
+
+.place-location {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.place-type {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 15px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.place-type.culture {
+  background-color: #8e44ad;
+}
+
+.place-type.nature {
+  background-color: #27ae60;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .featured-place {
+    height: 500px;
+  }
+
+  .secondary-places {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .left-card, .place-card {
+    height: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .places-card-wrapper {
+    padding: 20px 10px; /* Adjust padding for smaller screens */
+  }
+
+  .featured-place {
+    height: 300px;
+  }
+
+  .secondary-places {
+    height: auto;
+  }
+
+  .left-card, .right-cards {
+    height: 200px;
+  }
+
+  .place-info {
+    padding: 10px;
+  }
+
+  .place-name {
+    font-size: 20px;
+  }
+
+  .place-location {
+    font-size: 16px;
+  }
+
+  .place-type {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .places-card-wrapper {
+    padding: 15px 5px;
+  }
+
+  .featured-place {
+    height: 250px;
+  }
+
+  .left-card, .right-cards {
+    height: 150px;
+  }
+
+  .place-name {
+    font-size: 18px;
+  }
+
+  .place-location {
+    font-size: 14px;
+  }
+
+  .place-type {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+}
+
+
+.places-card-wrapper .place-info {
+  background: transparent;
+  z-index: 10;
+}
+
+.places-card-wrapper .skeleton-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.7));
+}
+
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.places-card-wrapper .skeleton {
+  background: linear-gradient(90deg, 
+    var(--skeleton-start-color) 25%, 
+    var(--skeleton-end-color) 37%, 
+    var(--skeleton-start-color) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}

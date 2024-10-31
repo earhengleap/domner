@@ -1,0 +1,410 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  
+}
+
+model User {
+  id                       String         @id @default(uuid()) @db.Uuid
+  name                     String?
+  email                    String?        @unique
+  emailVerified            Boolean        @default(false)
+  emailVerifiedDate        DateTime?
+  verificationRequestCount Int?
+  verificationToken        String?
+  image                    String?
+  hashedPassword           String
+  password                 String
+  role                     UserRole       @default(USER)
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+  token                    Int?
+  accounts                 Account[]
+  bookings                 Booking[]
+  guideForm                GuideForm?
+  guidePosts               GuidePost[]
+  guideProfile             GuideProfile?
+  notifications            Notification[]
+  user_profiles            user_profiles?
+  withdrawals        Withdrawal[] @relation("UserWithdrawals")
+  guideFinance             GuideFinance[]
+  guideBalance             GuideBalance[]
+  adminFinance             AdminFinance[]
+  userPosts                UserPost[]
+  comments                 Comment[]
+  likes                    Like[]
+  reviews    Review[]
+  processedWithdrawals Withdrawal[] @relation("AdminProcessedWithdrawals")
+  
+
+  Notifications Notifications[]
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model user_profiles {
+  id       String    @id @default(uuid()) @db.Uuid
+  userId   String    @unique @db.Uuid
+  dob      DateTime?
+  image    String?
+  username String?
+  address  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GuideProfile {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @unique @db.Uuid
+  firstName      String
+  lastName       String
+  email          String
+  phoneNumber    String?
+  description    String?
+  profilePicture String?
+  facebookLink   String?
+  tiktokLink     String?
+  twitterLink    String?
+  telegramLink   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GuideForm {
+  id                    String            @id @default(cuid())
+  userId                String            @unique @db.Uuid
+  fullName              String
+  dateOfBirth           DateTime
+  gender                String
+  phoneNumber           String
+  emailAddress          String
+  currentAddress        String
+  guideLicenseNumber    String
+  licenseExpiryDate     DateTime
+  yearsOfExperience     Int
+  areaOfExpertise       String
+  facebookLink          String?
+  languagesSpoken       String[]
+  specializedArea       String?
+  nationalIdPassportUrl String?
+  guideCertificationUrl String?
+  status                ApplicationStatus @default(PENDING)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GuidePost {
+  id              String         @id @default(cuid())
+  userId          String         @db.Uuid
+  title           String
+  location        String
+  area            String
+  type            String
+  about           String
+  packageOffer    String
+  highlight       String
+  fullDescription String
+  include         String
+  notSuitableFor  String
+  importantInfo   String
+  price           Float
+  photos          String[]
+  offlineMapUrl   String?
+  bookletUrl      String?
+  termsUrl        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  availability    Availability[]
+  bookings        Booking[]
+  user            User           @relation(fields: [userId], references: [id])
+  itinerary       Itinerary[]
+  reviews    Review[]
+}
+
+model Itinerary {
+  id          String    @id @default(cuid())
+  guidePostId String
+  title       String
+  content     String
+  guidePost   GuidePost @relation(fields: [guidePostId], references: [id], onDelete: Cascade)
+}
+
+model Availability {
+  id          String    @id @default(cuid())
+  guidePostId String
+  date        DateTime
+  isAvailable Boolean   @default(true)
+  guidePost   GuidePost @relation(fields: [guidePostId], references: [id], onDelete: Cascade)
+
+  @@unique([guidePostId, date])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  userId      String        @db.Uuid
+  guidePostId String
+  date        DateTime
+  adultCount  Int
+  status      BookingStatus
+  totalPrice  Float
+  feeAmount   Float       
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  guidePost   GuidePost     @relation(fields: [guidePostId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+  adminTransaction AdminTransaction[]
+}
+model GuideFinance {
+  id            String   @id @default(cuid())
+  userId        String   @unique @db.Uuid
+  balance       Float
+  lastUpdated   DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+  transactions  GuideTransaction[]
+}
+model AdminFinance {
+  id                String             @id @default(cuid())
+  userId            String             @unique @db.Uuid
+  totalFees         Float              @default(0)
+  transactionCount  Int                @default(0)
+  lastUpdated       DateTime           @default(now())
+  createdAt         DateTime           @default(now())
+  user              User               @relation(fields: [userId], references: [id])
+  transactions      AdminTransaction[]
+  
+}
+model AdminTransaction {
+  id              String       @id @default(cuid())
+  adminFinanceId  String
+  amount          Float
+  bookingId       String       @unique
+  description     String?
+  createdAt       DateTime     @default(now())
+  adminFinance    AdminFinance @relation(fields: [adminFinanceId], references: [id])
+  booking         Booking      @relation(fields: [bookingId], references: [id])
+}
+model FeeConfiguration {
+  id        String   @id @default(cuid())
+  feeRate   Float
+  updatedAt DateTime @default(now())
+}
+model Notification {
+  id             String   @id @default(cuid())
+  userId         String   @db.Uuid
+  message        String
+  bookingDetails String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id])
+}
+model GuideBalance {
+  id            String   @id @default(cuid())
+  userId        String   @unique @db.Uuid
+  balance       Float    @default(0)
+  lastUpdated   DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+}
+model GuideTransaction {
+   id              String       @id @default(cuid())
+  guideFinanceId  String
+  amount          Float
+  type            TransactionType
+  description     String?
+  createdAt       DateTime     @default(now())
+  guideFinance    GuideFinance @relation(fields: [guideFinanceId], references: [id])
+}
+model Withdrawal {
+  id            String           @id @default(cuid())
+  userId        String           @db.Uuid
+  amount        Float
+  method        WithdrawalMethod
+  methodDetails Json?            // For storing method-specific details
+  status        WithdrawalStatus @default(PENDING)
+  createdAt     DateTime         @default(now())
+  processedAt   DateTime?
+  processedBy   String?          @db.Uuid
+  updatedAt     DateTime         @updatedAt
+  user          User             @relation("UserWithdrawals", fields: [userId], references: [id])
+  admin         User?            @relation("AdminProcessedWithdrawals", fields: [processedBy], references: [id])
+}
+
+model Review {
+  id          String    @id @default(cuid())
+  userId      String    @db.Uuid
+  guidePostId String
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+  guidePost   GuidePost @relation(fields: [guidePostId], references: [id])
+}
+
+// New enums for user posts
+enum CambodiaProvince {
+  BANTEAY_MEANCHEY
+  BATTAMBANG
+  KAMPONG_CHAM
+  KAMPONG_CHHNANG
+  KAMPONG_SPEU
+  KAMPONG_THOM
+  KAMPOT
+  KANDAL
+  KEP
+  KOH_KONG
+  KRATIE
+  MONDULKIRI
+  PHNOM_PENH
+  PREAH_VIHEAR
+  PREY_VENG
+  PURSAT
+  RATANAKIRI
+  SIEM_REAP
+  PREAH_SIHANOUK
+  STUNG_TRENG
+  SVAY_RIENG
+  TAKEO
+  ODDAR_MEANCHEY
+  PAILIN
+  TBOUNG_KHMUM
+}
+
+enum PostArea {
+  RURAL
+  COASTAL
+  MOUNTAIN
+  FOREST
+  RIVERSIDE
+  WATERFALL
+  OTHER
+}
+
+enum PostCategory {
+  FOOD
+  DRINK
+  RESORT
+  OTHER
+}
+
+// New models for user posts
+model UserPost {
+  id          String           @id @default(cuid())
+  userId      String           @db.Uuid
+  caption     String
+  location    CambodiaProvince
+  area        PostArea
+  category    PostCategory
+  photos      String[]
+  hashtags  String[]   @default([])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  likes       Like[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  userId    String    @db.Uuid
+  postId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      UserPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([postId])
+}
+
+model Like {
+  id        String    @id @default(cuid())
+  userId    String    @db.Uuid
+  postId    String
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      UserPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+model Hashtag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  count     Int      @default(0)
+  lastUsed  DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+model Notifications {
+  id            String   @id @default(cuid())
+  userId        String   @db.Uuid
+  type          String
+  message       String
+  relatedPostId String?
+  actorId       String?  @db.Uuid
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+enum WithdrawalMethod {
+  BANK_TRANSFER
+  PAYPAL
+}
+
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  GUIDE
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
