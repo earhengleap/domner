@@ -5,10 +5,13 @@ import crypto from "crypto";
 import db from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
+import axios from "axios";
 
 const ABA_PAYWAY_API_KEY = process.env.ABA_PAYWAY_API_KEY!;
 const ABA_PAYWAY_MERCHANT_ID = process.env.ABA_PAYWAY_MERCHANT_ID!;
-const ABA_PAWWAY_API_URL = process.env.ABA_PAWWAY_API_URL!;
+const ABA_PAWWAY_API_URL = process.env.ABA_PAWWAY_API_URL;
+const ABA_PAYWAY_CURRENCY = process.env.ABA_PAYWAY_CURRENCY || "USD";
+const ABA_PAYWAY_RETURN_PARAMS = process.env.ABA_PAYWAY_RETURN_PARAMS || "guidebooking";
 
 function getHash(data: string): string {
   const hmac = crypto.createHmac("sha512", ABA_PAYWAY_API_KEY);
@@ -55,74 +58,110 @@ export async function POST(req: NextRequest) {
 
     const guidePost = booking.guidePost;
 
-    const req_time = Math.floor(Date.now() / 1000).toString();
+    // Format req_time as YYYYMMDDHHmmss
+    const now = new Date();
+    const req_time = now.getFullYear().toString() +
+      (now.getMonth() + 1).toString().padStart(2, '0') +
+      now.getDate().toString().padStart(2, '0') +
+      now.getHours().toString().padStart(2, '0') +
+      now.getMinutes().toString().padStart(2, '0') +
+      now.getSeconds().toString().padStart(2, '0');
+
     const tran_id = generateTransactionId(bookingId);
     const amount = booking.totalPrice.toFixed(2);
-    const items = Buffer.from(
-      JSON.stringify([{ name: guidePost.title, quantity: "1", amount }])
-    ).toString("base64");
     const firstname = user.name?.split(" ")[0] || "Guest";
     const lastname = user.name?.split(" ")[1] || "";
     const email = user.email;
-    const phone = "0123456789"; // Placeholder phone number
-    const type = "purchase";
-    const currency = "USD";
-    const payment_option = "";
-    const return_url = `${process.env.NEXT_PUBLIC_APP_URL}/guide/${guidePost.id}?success=1`;
-    const cancel_url = `${process.env.NEXT_PUBLIC_APP_URL}/guide-posts/${guidePost.id}?canceled=1`;
-    const continue_success_url = `${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking.id}`;
-    const return_params = "guidebooking";
+    const phone = process.env.ABA_PAYWAY_PHONE_PLACEHOLDER || "0123456789";
+    const purchase_type = "purchase";
+    const currency = ABA_PAYWAY_CURRENCY;
+    const payment_option = "abapay_khqr"; // Correct value for KHQR/ABA PAY generation
+    const lifetime = 5; // 5 minutes
+    const qr_image_template = "template3_color";
+    const payout = "";
 
-    // Generate hash in the correct order
+    // RAW values for hash
+    const raw_items = JSON.stringify([{ name: guidePost.title, quantity: "1", price: amount }]);
+    const raw_callback_url = `${process.env.NEXT_PUBLIC_APP_URL}/guide/${guidePost.id}?success=1`;
+    const raw_continue_success_url = `${process.env.NEXT_PUBLIC_APP_URL}/api/aba-payway-return?bookingId=${booking.id}&tran_id=${tran_id}`;
+
+    const items = Buffer.from(raw_items).toString("base64");
+    const callback_url = Buffer.from(raw_callback_url).toString("base64");
+    const return_deeplink = "";
+    const custom_fields = "";
+    const return_params = ABA_PAYWAY_RETURN_PARAMS;
+
     const hashString =
       req_time +
       ABA_PAYWAY_MERCHANT_ID +
       tran_id +
       amount +
       items +
-      "" + // ctid (empty if not used)
-      "" + // pwt (empty if not used)
       firstname +
       lastname +
       email +
       phone +
-      type +
+      purchase_type +
       payment_option +
-      return_url +
-      cancel_url +
-      continue_success_url +
-      "" + // return_deeplink (empty if not used)
+      callback_url +
+      return_deeplink +
       currency +
-      "" + // custom_fields (empty if not used)
-      return_params;
+      custom_fields +
+      return_params +
+      payout +
+      lifetime +
+      qr_image_template;
 
     const hash = getHash(hashString);
 
-    const response = {
+    const postData = {
       req_time,
       merchant_id: ABA_PAYWAY_MERCHANT_ID,
       tran_id,
       amount,
       items,
-      firstname,
-      lastname,
+      first_name: firstname,
+      last_name: lastname,
       email,
       phone,
-      type,
-      currency,
+      purchase_type,
       payment_option,
-      return_url,
-      cancel_url,
-      continue_success_url,
+      callback_url,
+      return_deeplink,
+      currency,
+      custom_fields,
       return_params,
-      hash,
-      url: ABA_PAWWAY_API_URL,
+      payout,
+      lifetime,
+      qr_image_template,
+      hash
     };
 
-    console.log("[ABA_PAYWAY_CHECKOUT] Response:", response);
-    return NextResponse.json(response);
+    const apiUrl = "https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/generate-qr";
+
+    try {
+      const paywayResponse = await axios.post(apiUrl, postData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log("[ABA_PAYWAY_CHECKOUT] PayWay API Response:", paywayResponse.data);
+
+      return NextResponse.json({
+        ...paywayResponse.data,
+        amount, 
+        success: paywayResponse.data.status?.code === '0' || paywayResponse.data.status?.code === '00'
+      });
+    } catch (paywayError: any) {
+      console.error("[ABA_PAYWAY_CHECKOUT] PayWay API Error:", paywayError.response?.data || paywayError.message);
+      return NextResponse.json(
+        { error: "Failed to communicate with PayWay API", details: paywayError.response?.data || paywayError.message },
+        { status: 502 }
+      );
+    }
   } catch (error) {
-    console.error("[ABA_PAYWAY_CHECKOUT] Error:", error);
+    console.error("[ABA_PAYWAY_CHECKOUT] Internal Error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

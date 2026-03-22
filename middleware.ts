@@ -20,6 +20,12 @@ const publicFilePattern =
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
+  const response = NextResponse.next();
+  response.headers.set(
+    'Content-Security-Policy',
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.paypal.com https://www.sandbox.paypal.com https://*.paypal.cn;"
+  );
+
   // Allow access to login, API routes, dashboard, and public files (including videos)
   if (
     path.startsWith("/login") ||
@@ -28,7 +34,7 @@ export async function middleware(request: NextRequest) {
     path === "/" ||
     publicFilePattern.test(path)
   ) {
-    return NextResponse.next();
+    return response;
   }
 
   const token = (await getToken({

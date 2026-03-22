@@ -1,6 +1,7 @@
 // hooks/use-upload.ts
+// hooks/use-upload.ts
 import { useState, useCallback } from "react";
-import { generateReactHelpers } from "@uploadthing/react/hooks";
+import { generateReactHelpers } from "@uploadthing/react";  // ← remove /hooks
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 
 export const { useUploadThing } = generateReactHelpers<OurFileRouter>();

@@ -3,12 +3,13 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
 
-import { compare } from "bcrypt"; 
+import { compare } from "bcryptjs"; 
 import db from "./db";
 // import { UserRole } from "@prisma/client";
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as NextAuthOptions["adapter"],
   secret: process.env.NEXTAUTH_SECRET,
+  debug: false,
   session: {
     strategy: "jwt",
   },
@@ -19,13 +20,13 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       profile(profile):any{
         return {
-          id: profile.id,
+          id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
           role: "USER",
-          emailVerification: profile.emailVerification ?? false
-          
+          hashedPassword: "",
+          password: "",
         }
       },
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -38,7 +39,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email", placeholder: "jb@gmail.com" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<any> {
         try {
           console.log("Authorize function recieved credentials:", credentials);
           // Check if user credentials are they are Not empty
@@ -90,7 +91,6 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, user , token }:any) {
       if (token) {
-        console.log(`token:${token} in session`);
         session.user.id = token.id;
         session.user.name = token.name;
         session.user.email = token.email;
@@ -98,12 +98,10 @@ export const authOptions: NextAuthOptions = {
         session.user.image = token.picture;
         session.user.emailVerified = token.emailVerified;
       }
-      console.log(`session:${session.user}`)
       return session;
     },
     async jwt({ token, user}:any) {
       if (user) {
-        console.log(`token:${token} in session`);
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
@@ -111,7 +109,6 @@ export const authOptions: NextAuthOptions = {
         token.image = user.picture;
         token.emailVerified = user.emailVerified;
       }
-      console.log(`token:${token}`)
       return token;
     },
   },

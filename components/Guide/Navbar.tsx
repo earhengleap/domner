@@ -173,14 +173,12 @@ export default function Navbar() {
               <GuideProfileAvatar session={session} />
             ) : (
               <Button
-                className={`p-2 px-6 rounded-sm font-semibold cursor-pointer ${
-                  scrolled ? "bg-green-500" : "bg-green-500"
-                }`}
-                asChild
-                variant={"outline"}
-              >
-                <Link href="/login">Log in</Link>
-              </Button>
+                   className="p-2 px-6 rounded-sm font-semibold cursor-pointer bg-[#A18167] border-[#A18167] text-white hover:bg-[#292929] hover:border-[#292929] transition-colors"
+                     asChild
+                    variant={"outline"}
+                      >
+             <Link href="/login">Log in</Link>
+          </Button>
             )}
 
             <button
@@ -217,9 +215,9 @@ export default function Navbar() {
             >
               <li>
                 <a
-                  href="/guide-dashboard"
-                  className={`block py-2 px-3 md:p-0 rounded hover:text-green-500 text-lg`}
-                  aria-current="page"
+                   href="/guide-dashboard"
+                    className={`block py-2 px-3 md:p-0 rounded text-[#A18167] hover:text-[#292929] text-lg transition-colors duration-200`}
+                    aria-current="page"
                 >
                   Home
                 </a>
@@ -227,7 +225,7 @@ export default function Navbar() {
               <li>
                 <a
                   href="/guide-dashboard/create-post"
-                  className={`block py-2 px-3 md:p-0 rounded hover:bg-gray-100 md:hover:bg-transparent hover:text-green-500 text-lg`}
+                  className={`block py-2 px-3 md:p-0 rounded md:hover:bg-transparent text-[#A18167] hover:text-[#292929] text-lg transition-colors duration-200`}
                 >
                   Create
                 </a>
@@ -235,7 +233,7 @@ export default function Navbar() {
               <li>
                 <a
                   href="/guide-dashboard/manage"
-                  className={`block py-2 px-3 md:p-0 rounded hover:bg-gray-100 md:hover:bg-transparent hover:text-green-500 text-lg`}
+                  className={`block py-2 px-3 md:p-0 rounded md:hover:bg-transparent text-[#A18167] hover:text-[#292929] text-lg transition-colors duration-200`}
                 >
                   Manage
                 </a>

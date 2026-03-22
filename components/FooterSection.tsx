@@ -16,7 +16,7 @@ const Footer: React.FC = () => {
       }}
     >
       {/* Green Overlay */}
-      <div className="absolute inset-0 bg-green-900 opacity-70 lg:opacity-80"></div>
+      <div className="absolute inset-0 bg-[#6f4e37] opacity-50 lg:opacity-80"></div>
 
       <div className="relative z-10 max-w-7xl mx-auto w-full">
         {/* Main Content */}
@@ -65,12 +65,12 @@ const Footer: React.FC = () => {
                   href="mailto:domnerkh@gmail.com"
                   className="text-blue-300 ml-1"
                 >
-                  domnerkh@gmail.com
+                  Domner.travel@gmail.com
                 </a>
               </p>
               <p className="flex items-center justify-center lg:justify-start">
                 <FaSquarePhone className="mr-2" />
-                Phone: +855-99 168 168
+                Phone: +855-77 952 454
               </p>
             </div>
           </div>
@@ -164,7 +164,7 @@ const Footer: React.FC = () => {
               <div className="relative w-40 h-28 flex items-center justify-center">
                 <div className="absolute inset-0 bg-white/90 rounded-xl group-hover:bg-white/20 transition-all duration-300"></div>
                 <img
-                  src="cambodia.png"
+                  src="C:\Users\PC\Desktop\Project major 1\domner-kh24\public\cambodia.png"
                   alt="Cambodia Tourism"
                   className="h-28 lg:h-20 object-contain p-2 relative z-10"
                 />

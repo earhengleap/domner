@@ -21,7 +21,7 @@ const Footer: React.FC = () => {
       }}
     >
       {/* Green Overlay */}
-      <div className="absolute inset-0 bg-green-900 opacity-70 lg:opacity-80"></div>
+      <div className="absolute inset-0 bg-[#A18167] opacity-50 lg:opacity-80"></div>
 
       {/* Content */}
       <div className="relative flex flex-col items-center lg:items-start mb-6 lg:mb-0 z-10 text-center lg:text-left text-xl">

@@ -101,27 +101,58 @@ export async function PUT(
     }
 
     console.log('Updating post...');
-    const updatedPost = await prisma.guidePost.update({
-      where: { id: postId },
-      data: data,
-      include: {
-        itinerary: true,
-        availability: true,
-        user: {
+const updatedPost = await prisma.guidePost.update({
+  where: { id: postId },
+  data: {
+    title: data.title,
+    location: data.location,
+    area: data.area,
+    type: data.type,
+    about: data.about,
+    packageOffer: data.packageOffer,
+    highlight: data.highlight,
+    fullDescription: data.fullDescription,
+    include: data.include,
+    notSuitableFor: data.notSuitableFor,
+    importantInfo: data.importantInfo,
+    price: data.price,
+    photos: data.photos,
+    offlineMapUrl: data.offlineMapUrl,
+    bookletUrl: data.bookletUrl,
+    termsUrl: data.termsUrl,
+    itinerary: {
+      deleteMany: {},
+      create: data.itinerary.map(({ title, content }: { title: string, content: string }) => ({
+        title,
+        content,
+      })),
+    },
+    availability: {
+      deleteMany: {},
+      create: data.availability.map(({ date, isAvailable }: { date: string, isAvailable: boolean }) => ({
+        date: new Date(date),
+        isAvailable,
+      })),
+    },
+  },
+  include: {
+    itinerary: true,
+    availability: true,
+    user: {
+      select: {
+        id: true,
+        name: true,
+        guideProfile: {
           select: {
-            id: true,
-            name: true,
-            guideProfile: {
-              select: {
-                firstName: true,
-                lastName: true,
-                description: true,
-              }
-            }
+            firstName: true,
+            lastName: true,
+            description: true,
           }
         }
       }
-    });
+    }
+  }
+});
 
     console.log('Post updated successfully:', JSON.stringify(updatedPost, null, 2));
     return NextResponse.json(updatedPost);

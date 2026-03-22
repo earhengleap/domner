@@ -195,10 +195,9 @@ const SlugPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <SearchComponents />
-      <div className="mb-6 mt-20 flex flex-col md:flex-row justify-between items-center gap-4">
-        {renderHeading()}
+  <div className="container max-w-7xl mx-auto pt-24 pb-8 px-4">
+    <SearchComponents />
+    <div className="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <FilterComponents
           filterOptions={filterOptions}
           onFilterChange={handleFilterChange}

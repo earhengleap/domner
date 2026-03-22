@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
-import { UploadButton } from "@/lib/uploadthing";
+import { UploadButton } from "@uploadthing/react";
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import { Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -49,21 +50,19 @@ export default function ImageInput({
         />
       ) : (
         <div className="w-full h-24">
-          <UploadButton
-            endpoint={endpoint}
-            onClientUploadComplete={(res) => {
-              if (res && res.length > 0) {
-                setImageUrl(res[0].url);
-                toast.success("Image Upload complete");
-                console.log("Files: ", res);
-                console.log("Upload Completed");
-              }
-            }}
-            onUploadError={(error: Error) => {
-              toast.error("Image Upload Failed, Try Again");
-              console.log(`ERROR! ${error.message}`, error);
-            }}
-          />
+          <UploadButton<OurFileRouter, any>
+  endpoint={endpoint as keyof OurFileRouter}
+  onClientUploadComplete={(res) => {
+    if (res && res.length > 0) {
+      setImageUrl(res[0].ufsUrl ?? res[0].url);
+      toast.success("Image Upload complete");
+    }
+  }}
+  onUploadError={(error: Error) => {
+    toast.error("Image Upload Failed, Try Again");
+    console.log(`ERROR! ${error.message}`, error);
+  }}
+/>
         </div>
       )}
     </div>

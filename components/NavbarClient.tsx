@@ -20,7 +20,7 @@ export default function NavbarClient() {
   const [selectedRoute, setSelectedRoute] = useState(pathname);
   
   // Add a state to track if we're on a white background page
-  const isWhiteBackground = ['/about-us', '/posts', '/login', '/become-guide'].includes(pathname);
+  const isWhiteBackground = ['/about-us', '/posts', '/login', '/become-guide', '/explore', '/payment'].includes(pathname);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -66,7 +66,7 @@ export default function NavbarClient() {
       <nav
         className={`fixed w-full mx-auto top-0 left-[50%] translate-x-[-50%] z-20 transition-all duration-300 ${
           scrolled || isWhiteBackground
-            ? "bg-white/30 backdrop-blur-md text-gray-900 shadow-md"
+            ? "bg-white/30 backdrop-blur-md text-[#A18167] shadow-md"
             : "bg-transparent text-white"
         }`}
       >
@@ -83,8 +83,10 @@ export default function NavbarClient() {
                 key={link.href}
                 href={link.href}
                 className={`text-lg transition-colors duration-200 ${
-                  scrolled || isWhiteBackground ? "hover:text-green-600" : "hover:text-green-300"
-                } ${selectedRoute === link.href ? "text-green-400" : ""}`}
+                  scrolled || isWhiteBackground 
+                    ? "text-[#A18167] hover:text-[#292929]"
+                    : "text-white hover:text-[#A18167]"
+                } ${selectedRoute === link.href ? "font-bold" : ""}`}
               >
                 {link.label}
               </Link>
@@ -99,8 +101,8 @@ export default function NavbarClient() {
                   <Button
                     className={`hidden md:block ${
                       scrolled || isWhiteBackground
-                        ? "bg-black-500 text-black"
-                        : "bg-white/20 text-white"
+                        ? "border-[#A18167] text-[#A18167] hover:text-[#292929]"
+                        : "bg-white/20 text-white border-white"
                     }`}
                     asChild
                     variant="outline"
@@ -112,8 +114,10 @@ export default function NavbarClient() {
               </div>
             ) : (
               <Button
-                className={`hidden md:block text-black ${
-                  scrolled || isWhiteBackground ? "bg-green-500" : ""
+                className={`hidden md:block ${
+                  scrolled || isWhiteBackground 
+                    ? "bg-[#A18167] text-white hover:bg-[#292929]" 
+                    : "bg-white text-black"
                 }`}
                 asChild
                 variant="outline"
@@ -130,9 +134,9 @@ export default function NavbarClient() {
               aria-label="Toggle menu"
             >
               {isMenuOpen ? (
-                <X className={`w-6 h-6 ${scrolled || isWhiteBackground ? "text-gray-900" : "text-white"}`} />
+                <X className={`w-6 h-6 ${scrolled || isWhiteBackground ? "text-[#A18167]" : "text-white"}`} />
               ) : (
-                <Menu className={`w-6 h-6 ${scrolled || isWhiteBackground ? "text-gray-900" : "text-white"}`} />
+                <Menu className={`w-6 h-6 ${scrolled || isWhiteBackground ? "text-[#A18167]" : "text-white"}`} />
               )}
             </button>
           </div>
@@ -165,10 +169,10 @@ export default function NavbarClient() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-gray-900 text-lg py-2 transition-colors duration-200 ${
+                  className={`text-[#A18167] text-lg py-2 transition-colors duration-200 ${
                     selectedRoute === link.href
-                      ? "text-green-600 font-medium"
-                      : "hover:text-green-600"
+                      ? "text-[#292929] font-medium underline"
+                      : "hover:text-[#292929]"
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -179,7 +183,7 @@ export default function NavbarClient() {
               {isLoggedIn && !isGuide && (
                 <Link
                   href="/become-guide"
-                  className="text-gray-900 text-lg py-2 hover:text-green-600 transition-colors duration-200"
+                  className="text-[#A18167] text-lg py-2 hover:text-[#292929] transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Become a Guide
@@ -189,7 +193,7 @@ export default function NavbarClient() {
               {!isLoggedIn && (
                 <Link
                   href="/login"
-                  className="text-black text-lg py-2 hover:text-green-600 transition-colors duration-200 border-t border-gray-100 mt-2 pt-4"
+                  className="text-[#A18167] text-lg py-2 hover:text-[#292929] transition-colors duration-200 border-t border-gray-100 mt-2 pt-4"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Log in

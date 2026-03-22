@@ -55,29 +55,29 @@ const DomnerAbout: React.FC = () => {
           <div className="flex flex-wrap justify-center gap-16 px-6">
             <div className="w-full md:w-64 text-center">
               <img
-                src="pitou.jpg"
-                alt="Mr. Pitou"
+                src="kimly.jpg"
+                alt="Mr. Hor kimly"
                 className="w-28 h-28 mx-auto mb-4 rounded-full object-cover"
               />
-              <p className="font-semibold">Mr. Pitou</p>
+              <p className="font-semibold">Mr. Hor kimly</p>
               <p className="text-gray-600">Chief Executive Officer</p>
             </div>
             <div className="w-full md:w-64 text-center">
               <img
-                src="monireach.jpg"
-                alt="Mr. Monireach"
+                src="cheabunthay.jpg"
+                alt="Mr. Chea bunthay"
                 className="w-28 h-28 mx-auto mb-4 rounded-full object-cover"
               />
-              <p className="font-semibold">Mr. Monireach</p>
+              <p className="font-semibold">Mr. Chea bunthay</p>
               <p className="text-gray-600">Human Resource Manager</p>
             </div>
             <div className="w-full md:w-64 text-center">
               <img
-                src="senghong.jpg"
-                alt="Mr. Por Senghong"
+                src="kps.jpg"
+                alt="Mr. Khiev Piseth"
                 className="w-28 h-28 mx-auto mb-4 rounded-full object-cover"
               />
-              <p className="font-semibold">Mr. Por senghong</p>
+              <p className="font-semibold">Mr. Khiev Piseth</p>
               <p className="text-gray-600">Chief Executive Officer</p>
             </div>
           </div>
@@ -111,7 +111,7 @@ const DomnerAbout: React.FC = () => {
                   <MailIcon className="mr-4" />
                   <a
                     href="mailto:domnerkh@gmail.com"
-                    className="text-green-500 hover:text-green-600 transition-colors"
+                    className="text-[#A18167] hover:text-[#292929] transition-colors"
                   >
                     domner168@gmail.com
                   </a>

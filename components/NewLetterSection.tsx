@@ -6,7 +6,7 @@ import { Input } from "./ui/input";
 function NewsLetterSection() {
   return (
     <section className="py-20 bg-[#05161A]">
-    <div className=" bg-[#d1ffd1] max-w-6xl mx-auto p-[4rem] rounded-[1.25rem] rounded-tl-extraLarge relative ">
+    <div className=" bg-[#d7c0af] max-w-6xl mx-auto p-[4rem] rounded-[1.25rem] rounded-tl-extraLarge relative ">
       <div className="z-10">
         <p className="text-lightGray text-[1.5rem] font-[600] text-center mb-[2.63rem]">
           Subscribe to get information, latest news and other{" "}
