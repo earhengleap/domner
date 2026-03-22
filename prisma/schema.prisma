@@ -285,32 +285,32 @@ enum CambodiaProvince {
   PREAH_VIHEAR
   PREY_VENG
   PURSAT
-  RATANAKIR
-  siem_reap
-  preah_sihanouk
-  stung_treng
-  svay_rieng
-  takeo
-  oddar_meanchey
-  pailin
-  tboung_khmum
+  RATANAKIRI
+  SIEM_REAP
+  PREAH_SIHANOUK
+  STUNG_TRENG
+  SVAY_RIENG
+  TAKEO
+  ODDAR_MEANCHEY
+  PAILIN
+  TBOUNG_KHMUM
 }
 
 enum PostArea {
-  rural
-  coastal
-  mountain
-  forest
-  riverside
-  waterfall
-  other
+  RURAL
+  COASTAL
+  MOUNTAIN
+  FOREST
+  RIVERSIDE
+  WATERFALL
+  OTHER
 }
 
 enum PostCategory {
-  food
-  drink
-  resort
-  oTHER
+  FOOD
+  DRINK
+  RESORT
+  OTHER
 }
 
 // New models for user posts
@@ -367,8 +367,6 @@ model Hashtag {
   createdAt DateTime @default(now())
 }
 
-
-
 enum WithdrawalStatus {
   PENDING
   APPROVED
@@ -378,7 +376,6 @@ enum WithdrawalMethod {
   BANK_TRANSFER
   PAYPAL
 }
-
 
 enum BookingStatus {
   PENDING
