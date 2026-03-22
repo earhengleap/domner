@@ -296,7 +296,7 @@ enum CambodiaProvince {
   tboung_khmum
 }
 
-enum postarea {
+enum PostArea {
   rural
   coastal
   mountain
@@ -306,7 +306,7 @@ enum postarea {
   other
 }
 
-enum postcategory {
+enum PostCategory {
   food
   drink
   resort
