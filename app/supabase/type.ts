@@ -13,7 +13,7 @@ export interface UserProfile {
 export type Database = {
   public: {
     Tables: {
-      user_profiles: {  // This should match your Supabase table name exactly
+      UserProfile: {  // This matches the new Prisma model name/table
         Row: {
           id: string;
           userId: string;

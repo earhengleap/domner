@@ -46,5 +46,6 @@ ConsoleApplication1/
 # project specific
 aba_payway.txt
 credential_info.txt
+credentials.txt
 public/bannerBg.psd
 scripts/check-favicon-square.js

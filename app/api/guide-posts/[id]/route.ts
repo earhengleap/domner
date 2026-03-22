@@ -7,6 +7,20 @@ import { authOptions } from '@/lib/authOptions';
 // Add this export to mark the route as dynamic
 export const dynamic = 'force-dynamic';
 
+function normalizeDateKey(value: Date | string) {
+  const parsed = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toISOString().slice(0, 10);
+}
+
+function dateFromKey(key: string) {
+  return new Date(`${key}T00:00:00.000Z`);
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -30,6 +44,24 @@ export async function GET(
       include: { 
         itinerary: true,
         availability: true,
+        bookings: {
+          where: {
+            status: {
+              in: ["PENDING", "CONFIRMED"],
+            },
+          },
+          select: {
+            id: true,
+            date: true,
+            status: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
         user: {
           select: {
             id: true,
@@ -53,8 +85,17 @@ export async function GET(
     }
 
     // Remove sensitive information from the user object
+    const lockedDates = Array.from(
+      new Set(
+        post.bookings
+          .map((booking) => normalizeDateKey(booking.date))
+          .filter((value): value is string => Boolean(value))
+      )
+    );
+
     const sanitizedPost = {
       ...post,
+      lockedDates,
       user: {
         ...post.user,
         email: undefined, // Remove email from the response
@@ -88,6 +129,18 @@ export async function PUT(
     console.log('Fetching post to update...');
     const post = await prisma.guidePost.findUnique({
       where: { id: postId },
+      include: {
+        bookings: {
+          where: {
+            status: {
+              in: ["PENDING", "CONFIRMED"],
+            },
+          },
+          select: {
+            date: true,
+          },
+        },
+      },
     });
 
     if (!post) {
@@ -101,61 +154,120 @@ export async function PUT(
     }
 
     console.log('Updating post...');
-const updatedPost = await prisma.guidePost.update({
-  where: { id: postId },
-  data: {
-    title: data.title,
-    location: data.location,
-    area: data.area,
-    type: data.type,
-    about: data.about,
-    packageOffer: data.packageOffer,
-    highlight: data.highlight,
-    fullDescription: data.fullDescription,
-    include: data.include,
-    notSuitableFor: data.notSuitableFor,
-    importantInfo: data.importantInfo,
-    price: data.price,
-    photos: data.photos,
-    offlineMapUrl: data.offlineMapUrl,
-    bookletUrl: data.bookletUrl,
-    termsUrl: data.termsUrl,
-    itinerary: {
-      deleteMany: {},
-      create: data.itinerary.map(({ title, content }: { title: string, content: string }) => ({
-        title,
-        content,
-      })),
-    },
-    availability: {
-      deleteMany: {},
-      create: data.availability.map(({ date, isAvailable }: { date: string, isAvailable: boolean }) => ({
-        date: new Date(date),
-        isAvailable,
-      })),
-    },
-  },
-  include: {
-    itinerary: true,
-    availability: true,
-    user: {
-      select: {
-        id: true,
-        name: true,
-        guideProfile: {
+    const lockedDateKeys = Array.from(
+      new Set(
+        post.bookings
+          .map((booking) => normalizeDateKey(booking.date))
+          .filter((value): value is string => Boolean(value))
+      )
+    );
+
+    const editableAvailability = Array.isArray(data.availability) ? data.availability : [];
+    const normalizedAvailabilityMap = new Map<string, { date: Date; isAvailable: boolean }>();
+
+    for (const lockedDateKey of lockedDateKeys) {
+      normalizedAvailabilityMap.set(lockedDateKey, {
+        date: dateFromKey(lockedDateKey),
+        isAvailable: false,
+      });
+    }
+
+    for (const entry of editableAvailability) {
+      const dateKey = normalizeDateKey(entry?.date);
+
+      if (!dateKey || normalizedAvailabilityMap.has(dateKey)) {
+        continue;
+      }
+
+      normalizedAvailabilityMap.set(dateKey, {
+        date: dateFromKey(dateKey),
+        isAvailable: entry?.isAvailable !== false,
+      });
+    }
+
+    const updatedPost = await prisma.guidePost.update({
+      where: { id: postId },
+      data: {
+        title: data.title,
+        location: data.location,
+        area: data.area,
+        type: data.type,
+        about: data.about,
+        packageOffer: data.packageOffer,
+        highlight: data.highlight,
+        fullDescription: data.fullDescription,
+        include: data.include,
+        notSuitableFor: data.notSuitableFor,
+        importantInfo: data.importantInfo,
+        price: typeof data.price === "number" ? data.price : Number(data.price),
+        photos: Array.isArray(data.photos) ? data.photos : [],
+        offlineMapUrl: data.offlineMapUrl,
+        bookletUrl: data.bookletUrl,
+        termsUrl: data.termsUrl,
+        itinerary: {
+          deleteMany: {},
+          create: Array.isArray(data.itinerary)
+            ? data.itinerary.map(({ title, content }: { title: string, content: string }) => ({
+                title,
+                content,
+              }))
+            : [],
+        },
+        availability: {
+          deleteMany: {},
+          create: Array.from(normalizedAvailabilityMap.values()),
+        },
+      },
+      include: {
+        itinerary: true,
+        availability: true,
+        bookings: {
+          where: {
+            status: {
+              in: ["PENDING", "CONFIRMED"],
+            },
+          },
           select: {
-            firstName: true,
-            lastName: true,
-            description: true,
+            id: true,
+            date: true,
+            status: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            guideProfile: {
+              select: {
+                firstName: true,
+                lastName: true,
+                description: true,
+              }
+            }
           }
         }
       }
-    }
-  }
-});
+    });
 
-    console.log('Post updated successfully:', JSON.stringify(updatedPost, null, 2));
-    return NextResponse.json(updatedPost);
+    const sanitizedUpdatedPost = {
+      ...updatedPost,
+      lockedDates: Array.from(
+        new Set(
+          updatedPost.bookings
+            .map((booking) => normalizeDateKey(booking.date))
+            .filter((value): value is string => Boolean(value))
+        )
+      ),
+    };
+
+    console.log('Post updated successfully:', JSON.stringify(sanitizedUpdatedPost, null, 2));
+    return NextResponse.json(sanitizedUpdatedPost);
   } catch (error) {
     console.error('Error updating post:', error);
     return NextResponse.json({ message: 'Error updating post' }, { status: 500 });

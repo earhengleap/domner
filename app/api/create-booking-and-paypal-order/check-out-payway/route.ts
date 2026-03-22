@@ -146,7 +146,6 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      console.log("[ABA_PAYWAY_CHECKOUT] PayWay API Response:", paywayResponse.data);
 
       return NextResponse.json({
         ...paywayResponse.data,

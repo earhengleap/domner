@@ -5,39 +5,29 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import { CultureSkeleton } from './ui/CultureSkeleton';
 
-interface GuidePost {
-  id: string;
-  title: string;
-  location: string;
-  fullDescription: string; 
-  area: string;
-  type: string;
-  photos: string[];
-}
+import { useGuidePosts, GuidePost } from "@/hooks/use-guide-posts";
 
 const Culture: React.FC = () => {
+  const { data: allPosts = [], isLoading } = useGuidePosts();
   const [culturePosts, setCulturePosts] = useState<GuidePost[]>([]);
   const [currentPost, setCurrentPost] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   useEffect(() => {
     AOS.init({
-      duration:800,
+      duration: 800,
       once: false,
-    })
-    const fetchGuidePosts = async () => {
-      try {
-        const response = await fetch('/api/all-guide-posts');
-        const data = await response.json();
-        const filteredPosts = data.filter((post: GuidePost) => post.type.toLowerCase() === 'culture');
-        setCulturePosts(filteredPosts);
-      } catch (error) {
-        console.error('Error fetching culture guide posts:', error);
-      }
-    };
-
-    fetchGuidePosts();
+    });
   }, []);
+
+  useEffect(() => {
+    if (allPosts.length > 0) {
+      const filtered = allPosts.filter(
+        (post: GuidePost) => post.type.toLowerCase() === "culture"
+      );
+      setCulturePosts(filtered);
+    }
+  }, [allPosts]);
 
   const nextPost = () => {
     setCurrentPost((prev) => (prev + 1) % culturePosts.length);

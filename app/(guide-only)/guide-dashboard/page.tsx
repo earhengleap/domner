@@ -3,8 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 
@@ -19,22 +17,16 @@ interface Post {
 }
 
 export default function GuideDashboard() {
-  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
-  const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    } else if (status === "authenticated") {
-      fetchPosts();
-    }
-  }, [status, session, router]);
+    fetchPosts();
+  }, []);
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch("/api/guide-posts");
+      const response = await fetch("/api/guide-posts?view=summary");
       if (response.ok) {
         const data = await response.json();
         const sortedPosts = data.sort((a: Post, b: Post) => 
@@ -78,7 +70,7 @@ export default function GuideDashboard() {
           <Card className="w-full mb-4 cursor-pointer hover:shadow-lg transition-shadow duration-300">
             <CardContent className="p-4">
               <div className="flex items-start">
-                <img src={post.photos[0] || '/default-image.jpg'} alt={post.title} className="w-24 h-24 object-cover rounded-md mr-4" />
+                <img src={post.photos[0] || '/default-image.png'} alt={post.title} className="w-24 h-24 object-cover rounded-md mr-4" />
                 <div className="flex-grow">
                   <h3 className="text-lg font-semibold">{post.title}</h3>
                   <p className="text-gray-600">Location: {post.location}</p>

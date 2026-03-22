@@ -241,7 +241,7 @@ const UnifiedCheckout: React.FC<UnifiedCheckoutProps> = ({
               <ABAQR 
                 qrString={paywayData.qrString} 
                 amount={total.toFixed(2)} 
-                merchantName="BORPORT"
+                merchantName="DOMNER"
               />
               
               <div className="mt-8 flex flex-col items-center gap-4">

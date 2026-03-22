@@ -5,41 +5,29 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import { NatureSkeleton } from "./ui/NatureSkeleton";
 
-interface GuidePost {
-  id: string;
-  title: string;
-  location: string;
-  fullDescription: string;
-  area: string;
-  type: string;
-  photos: string[];
-}
+import { useGuidePosts, GuidePost } from "@/hooks/use-guide-posts";
 
 const Nature: React.FC = () => {
-  const [naturePosts, setNaturePosts] = useState<GuidePost[]>([]);
+  const { data: allPosts = [], isLoading } = useGuidePosts();
   const [currentPost, setCurrentPost] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [naturePosts, setNaturePosts] = useState<GuidePost[]>([]);
 
   useEffect(() => {
     AOS.init({
       duration: 800,
       once: false,
     });
-    const fetchGuidePosts = async () => {
-      try {
-        const response = await fetch("/api/all-guide-posts");
-        const data = await response.json();
-        const filteredPosts = data.filter(
-          (post: GuidePost) => post.type.toLowerCase() === "nature"
-        );
-        setNaturePosts(filteredPosts);
-      } catch (error) {
-        console.error("Error fetching nature guide posts:", error);
-      }
-    };
-
-    fetchGuidePosts();
   }, []);
+
+  useEffect(() => {
+    if (allPosts.length > 0) {
+      const filtered = allPosts.filter(
+        (post: GuidePost) => post.type.toLowerCase() === "nature"
+      );
+      setNaturePosts(filtered);
+    }
+  }, [allPosts]);
 
   const nextPost = () => {
     setCurrentPost((prev) => (prev + 1) % naturePosts.length);

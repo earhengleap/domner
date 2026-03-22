@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { hasAdminAccess } from "@/lib/access";
 import {
   BarChart,
   Bar,
@@ -36,7 +37,7 @@ export default function UsersDashboard() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session || session.user?.role !== "ADMIN") {
+    if (!session || !hasAdminAccess(session.user)) {
       router.push("/login");
     } else {
       fetchUsersData();
@@ -101,7 +102,7 @@ export default function UsersDashboard() {
                 <tr key={user.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" suppressHydrationWarning>
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

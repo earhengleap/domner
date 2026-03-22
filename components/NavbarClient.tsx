@@ -8,21 +8,24 @@ import AuthenticatedAvatar from "./AuthenticatedAvatar";
 import { useUser } from "@/context/UserContext";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { hasGuideAccess } from "@/lib/access";
 
 export default function NavbarClient() {
   const [scrolled, setScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { data: session, status } = useSession();
   const isLoggedIn = status === "authenticated";
-  const isGuide = session?.user?.role === "GUIDE";
+  const isGuide = hasGuideAccess(session?.user);
   const { updateUser } = useUser();
   const pathname = usePathname();
   const [selectedRoute, setSelectedRoute] = useState(pathname);
   
-  // Add a state to track if we're on a white background page
-  const isWhiteBackground = ['/about-us', '/posts', '/login', '/become-guide', '/explore', '/payment'].includes(pathname);
+  // Global transparent-to-solid transition for all routes
+  const useTransparentNav = !scrolled;
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       const scrollY = window.scrollY;
       setScrolled(scrollY > 10);
@@ -64,16 +67,21 @@ export default function NavbarClient() {
   return (
     <div>
       <nav
-        className={`fixed w-full mx-auto top-0 left-[50%] translate-x-[-50%] z-20 transition-all duration-300 ${
-          scrolled || isWhiteBackground
-            ? "bg-white/30 backdrop-blur-md text-[#A18167] shadow-md"
-            : "bg-transparent text-white"
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
+          !useTransparentNav
+            ? "bg-white/90 backdrop-blur-lg text-[#A18167] shadow-lg py-2"
+            : "bg-transparent text-white py-4"
         }`}
       >
-        <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+        {/* Subtle top gradient for legibility when transparent */}
+        {useTransparentNav && (
+          <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/40 to-transparent -z-10 h-32 pointer-events-none" />
+        )}
+        
+        <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto px-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 relative z-50">
-            <img src="/DomnerDesktop.png" className="h-8" alt="Domner Logo" />
+          <Link href="/" className="flex items-center space-x-3 relative z-50 transition-transform duration-300 hover:scale-105">
+            <img src="/DomnerDesktop.png" className="h-8 md:h-10 transition-all duration-300" alt="Domner Logo" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -82,61 +90,74 @@ export default function NavbarClient() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-lg transition-colors duration-200 ${
-                  scrolled || isWhiteBackground 
+                className={`text-lg transition-all duration-300 relative group drop-shadow-md ${
+                  !useTransparentNav
                     ? "text-[#A18167] hover:text-[#292929]"
-                    : "text-white hover:text-[#A18167]"
+                    : "text-white hover:text-white/80"
                 } ${selectedRoute === link.href ? "font-bold" : ""}`}
               >
                 {link.label}
+                <span className={`absolute -bottom-1 left-0 w-0 h-0.5 transition-all duration-300 ${
+                  !useTransparentNav ? "bg-[#A18167]" : "bg-white"
+                } group-hover:w-full ${selectedRoute === link.href ? "w-full" : ""}`}></span>
               </Link>
             ))}
           </div>
 
           {/* Auth Buttons and Mobile Menu Toggle */}
           <div className="flex items-center space-x-4 relative z-50">
-            {isLoggedIn ? (
-              <div className="flex items-center space-x-4">
-                {!isGuide && (
+            {mounted && (
+              <>
+                {isLoggedIn ? (
+                  <div className="flex items-center space-x-4">
+                    {!isGuide && (
+                      <Button
+                        className={`hidden md:flex transition-all duration-300 ${
+                          !useTransparentNav
+                            ? "border-[#A18167] text-[#A18167] hover:bg-[#A18167] hover:text-white"
+                            : "bg-white/10 backdrop-blur-md text-white border-white hover:bg-white/20"
+                        }`}
+                        asChild
+                        variant="outline"
+                      >
+                        <Link href="/become-guide">Become a Guide</Link>
+                      </Button>
+                    )}
+                    <div className="transition-transform duration-300 hover:scale-110">
+                      <AuthenticatedAvatar session={session} />
+                    </div>
+                  </div>
+                ) : (
                   <Button
-                    className={`hidden md:block ${
-                      scrolled || isWhiteBackground
-                        ? "border-[#A18167] text-[#A18167] hover:text-[#292929]"
-                        : "bg-white/20 text-white border-white"
+                    className={`hidden md:block transition-all duration-300 shadow-md ${
+                      !useTransparentNav
+                        ? "border-[#A18167] text-[#A18167] hover:bg-[#A18167] hover:text-white"
+                        : "bg-white/10 backdrop-blur-md text-white border-white hover:bg-white/20"
                     }`}
                     asChild
                     variant="outline"
                   >
-                    <Link href="/become-guide">Become a Guide</Link>
+                    <Link href={pathname === "/login" ? "/register" : "/login"}>
+                      {pathname === "/login" ? "Sign Up" : "Log in"}
+                    </Link>
                   </Button>
                 )}
-                <AuthenticatedAvatar session={session} />
-              </div>
-            ) : (
-              <Button
-                className={`hidden md:block ${
-                  scrolled || isWhiteBackground 
-                    ? "bg-[#A18167] text-white hover:bg-[#292929]" 
-                    : "bg-white text-black"
-                }`}
-                asChild
-                variant="outline"
-              >
-                <Link href="/login">Log in</Link>
-              </Button>
+              </>
             )}
 
             {/* Mobile Menu Button */}
             <button
               data-menu-button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100/10 transition-colors"
+              className={`md:hidden p-2 rounded-lg transition-colors ${
+                !useTransparentNav ? "hover:bg-gray-100 text-[#A18167]" : "hover:bg-white/10 text-white"
+              }`}
               aria-label="Toggle menu"
             >
               {isMenuOpen ? (
-                <X className={`w-6 h-6 ${scrolled || isWhiteBackground ? "text-[#A18167]" : "text-white"}`} />
+                <X className="w-6 h-6" />
               ) : (
-                <Menu className={`w-6 h-6 ${scrolled || isWhiteBackground ? "text-[#A18167]" : "text-white"}`} />
+                <Menu className="w-6 h-6" />
               )}
             </button>
           </div>
@@ -180,24 +201,28 @@ export default function NavbarClient() {
                 </Link>
               ))}
               
-              {isLoggedIn && !isGuide && (
-                <Link
-                  href="/become-guide"
-                  className="text-[#A18167] text-lg py-2 hover:text-[#292929] transition-colors duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Become a Guide
-                </Link>
-              )}
-              
-              {!isLoggedIn && (
-                <Link
-                  href="/login"
-                  className="text-[#A18167] text-lg py-2 hover:text-[#292929] transition-colors duration-200 border-t border-gray-100 mt-2 pt-4"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Log in
-                </Link>
+              {mounted && (
+                <>
+                  {isLoggedIn && !isGuide && (
+                    <Link
+                      href="/become-guide"
+                      className="text-[#A18167] text-lg py-2 hover:text-[#292929] transition-colors duration-200"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Become a Guide
+                    </Link>
+                  )}
+                  
+                  {!isLoggedIn && (
+                    <Link
+                      href="/login"
+                      className="text-[#A18167] text-lg py-2 hover:text-[#292929] transition-colors duration-200 border-t border-gray-100 mt-2 pt-4"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Log in
+                    </Link>
+                  )}
+                </>
               )}
             </div>
           </div>

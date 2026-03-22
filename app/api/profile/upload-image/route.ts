@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import prisma from "@/lib/db";
 import { authOptions } from "@/lib/authOptions";
-import { supabase } from "@/app/supabase/supabaseClient";
+import { supabase, serviceSupabase } from "@/app/supabase/supabaseClient";
+import { revalidatePath } from "next/cache";
 
 // Add this export to mark the route as dynamic
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-    const { data, error: uploadError } = await supabase.storage
+    const { data, error: uploadError } = await serviceSupabase.storage
       .from('profiles')
       .upload(fileName, buffer, {
         contentType: file.type,
@@ -43,8 +44,8 @@ export async function POST(request: Request) {
       .from('profiles')
       .getPublicUrl(fileName);
 
-    const updated = await prisma.$transaction(async (tx) => {
-      const profile = await tx.user_profiles.upsert({
+    const updated = await (prisma as any).$transaction(async (tx: any) => {
+      const profile = await tx.userProfile.upsert({
         where: {
           userId: session.user.id,
         },
@@ -69,16 +70,24 @@ export async function POST(request: Request) {
       return { profile, user };
     });
 
+    // Invalidate the profile page cache to show the new image
+    revalidatePath("/profile");
+
     return NextResponse.json({
       success: true,
       imageUrl: publicUrl,
       data: updated,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('API error:', error);
     return NextResponse.json(
-      { error: 'API operation failed', details: error },
+      { 
+        error: 'API operation failed', 
+        message: error.message,
+        details: error,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

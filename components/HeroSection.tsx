@@ -28,9 +28,12 @@ const Hero: React.FC<HeroProps> = ({
           muted
           className="absolute top-0 left-0 h-full w-full object-cover brightness-60"
         />
+        
+        {/* Top Gradient Overlay for Navbar Legibility */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/50 to-transparent z-10" />
 
         {/* Overlay with Headers and Search Bar */}
-        <div className="absolute bottom-0 left-0 right-0 top-0 flex flex-col justify-end py-24 items-center gap-2">
+        <div className="absolute inset-0 flex flex-col justify-center items-center gap-2 px-4">
           <h2 className="text-white text-3xl font-bold">{mainHeader}</h2>
           <h5 className="text-white text-2xl font-semibold">
             {secondaryHeader}

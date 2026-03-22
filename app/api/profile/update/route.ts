@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import prisma from "@/lib/db";
 import { authOptions } from "@/lib/authOptions";
+import { revalidatePath } from "next/cache";
 
 // Add this export to mark the route as dynamic
 export const dynamic = 'force-dynamic';
@@ -16,22 +17,27 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
+    
+    // Validate and clean up data
+    const dob = data.dob && !isNaN(new Date(data.dob).getTime()) 
+      ? new Date(data.dob) 
+      : null;
 
-    const updatedProfile = await prisma.$transaction(async (tx) => {
-      // Update user_profiles
-      const profile = await tx.user_profiles.upsert({
+    const updatedProfile = await prisma.$transaction(async (tx: any) => {
+      // Update UserProfile
+      const profile = await tx.userProfile.upsert({
         where: {
           userId: session.user.id,
         },
         update: {
           username: data.username,
-          dob: data.dob ? new Date(data.dob) : null,
+          dob: dob,
           address: data.address,
         },
         create: {
           userId: session.user.id,
           username: data.username,
-          dob: data.dob ? new Date(data.dob) : null,
+          dob: dob,
           address: data.address,
         },
       });
@@ -49,15 +55,22 @@ export async function POST(request: Request) {
       return { profile, user };
     });
 
+    // Invalidate the profile page cache
+    revalidatePath("/profile");
+
     return NextResponse.json({
       success: true,
       data: updatedProfile,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating profile:', error);
     return NextResponse.json(
-      { error: "Failed to update profile" },
+      { 
+        error: "Failed to update profile", 
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+      },
       { status: 500 }
     );
   }

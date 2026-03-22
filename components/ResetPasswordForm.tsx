@@ -19,7 +19,6 @@ export default function RegisterForm() {
   const [emailErr, setEmailErr] = useState("");
   async function onSubmit(data:any) {
     try {
-      console.log(data);
       setLoading(true);
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
       const response = await fetch(`${baseUrl}/api/user`, {
@@ -44,13 +43,11 @@ export default function RegisterForm() {
           toast.error("User with this Email already exists");
         } else {
           // Handle other errors
-          console.error("Server Error:", responseData.message);
           toast.error("Oops Something Went wrong");
         }
       }
     } catch (error) {
       setLoading(false);
-      console.error("Network Error:", error);
       toast.error("Something Went wrong, Please Try Again");
     }
   }

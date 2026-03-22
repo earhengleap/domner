@@ -35,7 +35,29 @@ export async function GET(
       include: {
         guidePost: {
           select: {
+            id: true,
             title: true,
+            location: true,
+            type: true,
+            price: true,
+            userId: true,
+            user: {
+              select: {
+                name: true,
+                guideProfile: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            name: true,
+            email: true,
           },
         },
       },
@@ -45,7 +67,71 @@ export async function GET(
       return NextResponse.json({ error: "Booking not found or unauthorized" }, { status: 404 });
     }
 
-    return NextResponse.json(booking);
+    const requestNotifications = await (prisma as any).notification.findMany({
+      where: {
+        actorId: session.user.id,
+        relatedPostId: booking.id,
+        type: {
+          in: [
+            "booking_cancel_request",
+            "booking_cancel_request_result",
+            "booking_change_request",
+          ],
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    let cancelRequest = null;
+    let changeRequest = null;
+    for (const notification of requestNotifications) {
+      let details: any = {};
+      try {
+        details = notification.bookingDetails
+          ? JSON.parse(notification.bookingDetails)
+          : {};
+      } catch {
+        details = {};
+      }
+
+      if (notification.type?.startsWith("booking_cancel_request") && details.status) {
+        cancelRequest = {
+          id: notification.id,
+          status: details.status,
+          reason: details.reason || "",
+          requestedAt: details.requestedAt || notification.createdAt.toISOString(),
+          resolvedAt: details.resolvedAt,
+        };
+      }
+
+      if (notification.type === "booking_change_request" && details.status && !changeRequest) {
+        changeRequest = {
+          id: notification.id,
+          status: details.status,
+          reason: details.reason || "",
+          requestedAt: details.requestedAt || notification.createdAt.toISOString(),
+        };
+      }
+
+      if (cancelRequest && changeRequest) {
+        break;
+      }
+    }
+
+    return NextResponse.json({
+      ...booking,
+      guidePost: {
+        ...booking.guidePost,
+        guideName:
+          booking.guidePost.user?.guideProfile
+            ? `${booking.guidePost.user.guideProfile.firstName} ${booking.guidePost.user.guideProfile.lastName}`.trim()
+            : booking.guidePost.user?.name || "Guide",
+      },
+      cancelRequest,
+      changeRequest,
+    });
   } catch (error) {
     console.error("Error fetching booking details:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -78,65 +164,17 @@ export async function PUT(
       );
     }
 
-    // If changing date, check availability
-    if (validatedData.date) {
-      const newDate = new Date(validatedData.date);
-
-      const isAvailable = await prisma.availability.findUnique({
-        where: {
-          guidePostId_date: {
-            guidePostId: existingBooking.guidePostId,
-            date: newDate,
-          },
-        },
-      });
-
-      if (!isAvailable || !isAvailable.isAvailable) {
-        return NextResponse.json(
-          { error: "Selected date is not available" },
-          { status: 400 }
-        );
-      }
+    if (existingBooking.status !== "PENDING") {
+      return NextResponse.json(
+        { error: "Direct booking edits are disabled. Please request changes from the guide instead." },
+        { status: 400 }
+      );
     }
 
-    // Update the booking
-    const updatedBooking = await prisma.booking.update({
-      where: { id: bookingId },
-      data: {
-        ...(validatedData.date && { date: new Date(validatedData.date) }),
-        ...(validatedData.adultCount && {
-          adultCount: validatedData.adultCount,
-        }),
-        ...(validatedData.status && { status: validatedData.status }),
-      },
-    });
-
-    // If date changed, update availabilities
-    if (validatedData.date) {
-      // Reset old availability
-      await prisma.availability.update({
-        where: {
-          guidePostId_date: {
-            guidePostId: existingBooking.guidePostId,
-            date: existingBooking.date,
-          },
-        },
-        data: { isAvailable: true },
-      });
-
-      // Set new availability
-      await prisma.availability.update({
-        where: {
-          guidePostId_date: {
-            guidePostId: existingBooking.guidePostId,
-            date: updatedBooking.date,
-          },
-        },
-        data: { isAvailable: false },
-      });
-    }
-
-    return NextResponse.json(updatedBooking);
+    return NextResponse.json(
+      { error: "Direct booking edits are disabled. Please request changes from the guide instead." },
+      { status: 400 }
+    );
   } catch (error) {
     console.error("Error updating booking:", error);
     if (error instanceof z.ZodError) {
@@ -176,23 +214,10 @@ export async function DELETE(
       );
     }
 
-    // Delete the booking
-    await prisma.booking.delete({
-      where: { id: bookingId },
-    });
-
-    // Update availability
-    await prisma.availability.update({
-      where: {
-        guidePostId_date: {
-          guidePostId: existingBooking.guidePostId,
-          date: existingBooking.date,
-        },
-      },
-      data: { isAvailable: true },
-    });
-
-    return NextResponse.json({ message: "Booking cancelled successfully" });
+    return NextResponse.json(
+      { error: "Direct booking cancellation is disabled. Please request the guide first." },
+      { status: 400 }
+    );
   } catch (error) {
     console.error("Error cancelling booking:", error);
     return NextResponse.json(

@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -26,7 +27,9 @@ import {
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2, Camera } from "lucide-react";
+import { CalendarIcon, Loader2, Camera, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import ImageCropper from "./ImageCropper";
 
 interface UserProfile {
   id: string;
@@ -45,11 +48,12 @@ interface ProfileFormProps {
     id: string;
     name: string;
     email: string;
+    image: string;
   };
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/jfif", "image/pjpeg"];
 
 const profileFormSchema = z.object({
   username: z
@@ -72,8 +76,10 @@ export default function ProfileForm({ initialProfile, user }: ProfileFormProps) 
   const { data: session, update: updateSession } = useSession();
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(
-    initialProfile?.image || null
+    initialProfile?.image || user?.image || null
   );
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -100,13 +106,12 @@ export default function ProfileForm({ initialProfile, user }: ProfileFormProps) 
 
       const data = await response.json();
 
-      // Update session with new username
+      // Update session with new username immediately
       await updateSession({
-        ...session,
         user: {
           ...session?.user,
           name: values.username,
-        },
+        }
       });
 
       toast({
@@ -150,11 +155,25 @@ export default function ProfileForm({ initialProfile, user }: ProfileFormProps) 
     }
 
     try {
+      // Don't upload immediately. Open cropper first.
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result as string);
+        setCropModalOpen(true);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error reading image:', error);
+    }
+  };
+
+  const onCropComplete = async (croppedBlob: Blob) => {
+    try {
       setIsUploading(true);
 
       // Create form data for upload
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', croppedBlob, 'profile.jpg');
 
       // Upload image
       const response = await fetch('/api/profile/upload-image', {
@@ -167,14 +186,13 @@ export default function ProfileForm({ initialProfile, user }: ProfileFormProps) 
       }
 
       const { imageUrl } = await response.json();
-
-      // Update session with new image
+      
+      // Update session with new image immediately
       await updateSession({
-        ...session,
         user: {
           ...session?.user,
           image: imageUrl,
-        },
+        }
       });
 
       setPreviewImage(imageUrl);
@@ -187,7 +205,6 @@ export default function ProfileForm({ initialProfile, user }: ProfileFormProps) 
       router.refresh();
     } catch (error) {
       console.error('Error uploading image:', error);
-      setPreviewImage(initialProfile?.image || null);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to upload image",
@@ -195,146 +212,201 @@ export default function ProfileForm({ initialProfile, user }: ProfileFormProps) 
       });
     } finally {
       setIsUploading(false);
+      setImageToCrop(null);
     }
   };
 
+  const isPending = isUploading || form.formState.isSubmitting;
+
   return (
-    <div className="space-y-6 p-6 bg-white rounded-lg shadow-sm">
-      {/* Image Upload Section */}
-      <div className="flex flex-col items-center space-y-4">
-        <div className="relative group">
-          <Avatar className="w-32 h-32 border-2 border-gray-200">
-            <AvatarImage 
-              src={previewImage || ""} 
-              alt={user.name || "Profile"} 
-              className="object-cover"
-            />
-            <AvatarFallback className="text-2xl bg-primary/10">
-              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <label
-            htmlFor="imageUpload"
-            className="absolute bottom-0 right-0 p-2 bg-primary rounded-full cursor-pointer 
-                     hover:bg-primary/90 transition-colors group-hover:scale-105"
+    <div className="relative group/main">
+      <AnimatePresence>
+        {isPending && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-white/60 backdrop-blur-[2px] flex items-center justify-center rounded-3xl"
           >
-            {isUploading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-white" />
-            ) : (
-              <Camera className="w-4 h-4 text-white" />
-            )}
-          </label>
-          <input
-            id="imageUpload"
-            type="file"
-            accept={ALLOWED_FILE_TYPES.join(",")}
-            className="hidden"
-            onChange={handleImageUpload}
-            disabled={isUploading}
-          />
+            <div className="bg-white p-8 rounded-2xl shadow-2xl border border-brown-100 flex flex-col items-center space-y-4">
+              <Loader2 className="w-10 h-10 animate-spin text-[#A18167]" />
+              <p className="font-bold text-[#A18167] animate-pulse">Syncing Profile...</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className={cn(
+        "grid lg:grid-cols-3 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-brown-100/50 transition-all duration-500",
+        isPending && "blur-[1px] scale-[0.995]"
+      )}>
+      {/* Sidebar: Image Upload */}
+      <div className="lg:col-span-1 p-8 bg-[#fdfbf9]/50">
+        <div className="flex flex-col items-center space-y-6">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-[#A18167] rounded-full blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
+            <Avatar className="w-40 h-40 border-4 border-white shadow-2xl relative z-10 transition-transform duration-500 group-hover:scale-[1.02]">
+              <AvatarImage 
+                src={previewImage || ""} 
+                alt={user.name || "Profile"} 
+                className="object-cover"
+              />
+              <AvatarFallback className="text-4xl bg-[#A18167]/10 text-[#A18167] font-bold">
+                {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            
+            <label
+              htmlFor="imageUpload"
+              className="absolute bottom-2 right-2 p-3 bg-[#A18167] rounded-full cursor-pointer 
+                       hover:bg-[#8e6f56] shadow-lg transition-all duration-300 group-hover:scale-110 z-20"
+            >
+              {isUploading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
+              ) : (
+                <Camera className="w-5 h-5 text-white" />
+              )}
+            </label>
+            <input
+              id="imageUpload"
+              type="file"
+              accept=".jpg,.jpeg,.png,.gif,.webp,.jfif"
+              className="hidden"
+              onChange={handleImageUpload}
+              disabled={isUploading}
+            />
+          </div>
+          
+          <div className="text-center space-y-2">
+            <h3 className="font-bold text-xl text-[#292929]">{user.name}</h3>
+            <p className="text-muted-foreground">{user.email}</p>
+          </div>
+
+          <div className="w-full pt-6 border-t border-brown-100/30">
+            <p className="text-sm text-center text-muted-foreground leading-relaxed">
+              Allowed JPG, GIF or PNG. <br />Max size of 5MB
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Click the camera icon to update your profile picture
-        </p>
       </div>
 
-      {/* Profile Form Section */}
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="Enter your username"
-                    className="bg-white"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="dob"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date of birth</FormLabel>
-                <FormControl>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal bg-white",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
+      {/* Main Content: Profile Form */}
+      <div className="lg:col-span-2 p-8 lg:p-12">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <div className="grid gap-8">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#A18167] font-semibold text-base">Display Name</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter your username"
+                        className="bg-[#fdfbf9] border-brown-100/50 focus:border-[#A18167] focus:ring-[#A18167] h-12 text-lg rounded-xl transition-all"
                       />
-                    </PopoverContent>
-                  </Popover>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Address</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="Enter your address"
-                    className="bg-white"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="dob"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="text-[#A18167] font-semibold text-base">Date of Birth</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full h-12 pl-3 text-left font-normal bg-[#fdfbf9] border-brown-100/50 hover:bg-[#A18167]/5 text-lg rounded-xl",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-3 h-5 w-5 opacity-50" />
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Select your birth date</span>
+                            )}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-auto p-0 rounded-2xl border-brown-100">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                          captionLayout="dropdown-buttons"
+                          fromYear={1900}
+                          toYear={new Date().getFullYear()}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          className="rounded-2xl"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={isUploading || form.formState.isSubmitting}
-          >
-            {form.formState.isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
-        </form>
-      </Form>
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[#A18167] font-semibold text-base">Current Address</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        placeholder="e.g. 123 Street, Phnom Penh"
+                        className="bg-[#fdfbf9] border-brown-100/50 focus:border-[#A18167] focus:ring-[#A18167] min-h-[100px] text-lg rounded-xl transition-all resize-none"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="pt-6 border-t border-brown-100/30 flex justify-end">
+              <Button 
+                type="submit" 
+                className="bg-[#A18167] hover:bg-[#8e6f56] text-white h-12 px-8 text-lg font-bold rounded-xl shadow-lg shadow-brown-200/50 transition-all active:scale-95 disabled:opacity-50"
+                disabled={isUploading || form.formState.isSubmitting}
+              >
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Saving Changes...
+                  </>
+                ) : (
+                  "Update Profile"
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+      </div>
+      
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          open={cropModalOpen}
+          onOpenChange={setCropModalOpen}
+          onCropComplete={onCropComplete}
+        />
+      )}
     </div>
   );
 }

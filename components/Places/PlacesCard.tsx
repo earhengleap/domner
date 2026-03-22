@@ -10,19 +10,10 @@ import HighlightText from "../HighlightText";
 import LoadImage from "../LoadImage";
 import { DestinationSkeleton } from "../ui/DestinationCardsLoadingSkeleton";
 
-interface GuidePost {
-  id: string;
-  title: string;
-  location: string;
-  area: string;
-  type: string;
-  photos: string[];
-}
+import { useGuidePosts, GuidePost } from "@/hooks/use-guide-posts";
 
 const PlacesCard: React.FC = () => {
-  const [guidePosts, setGuidePosts] = useState<GuidePost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: guidePosts = [], isLoading, error } = useGuidePosts();
   const router = useRouter();
 
   useEffect(() => {
@@ -30,27 +21,6 @@ const PlacesCard: React.FC = () => {
       duration: 800,
       once: false,
     });
-
-    const fetchGuidePosts = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/all-guide-posts");
-        if (!response.ok) {
-          throw new Error("Failed to fetch guide posts");
-        }
-        const data = await response.json();
-        console.log("Fetched guide posts:", data);
-        setGuidePosts(data);
-        setError(null);
-      } catch (error) {
-        console.error("Error fetching guide posts:", error);
-        setError("Failed to load guide posts. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchGuidePosts();
   }, []);
 
   if (isLoading) {
@@ -58,7 +28,7 @@ const PlacesCard: React.FC = () => {
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return <div className="error">Failed to load guide posts.</div>;
   }
 
   if (guidePosts.length === 0) {
@@ -69,11 +39,9 @@ const PlacesCard: React.FC = () => {
 
   const getImageSrc = (post: GuidePost) => {
     if (post.photos && post.photos.length > 0) {
-      console.log(`Image URL for ${post.title}:`, post.photos[0]);
       return post.photos[0];
     }
-    console.log(`No image for ${post.title}, using default`);
-    return "/default-image.jpg";
+    return "/default-image.png";
   };
 
   const handlePostClick = (postId: string) => {

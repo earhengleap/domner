@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
+import { hasGuideAccess } from "@/lib/access";
 
 interface GuideProfile {
   firstName: string;
@@ -31,7 +32,7 @@ export function GuideProfileForm() {
 
   useEffect(() => {
     async function fetchProfile() {
-      if (status === 'authenticated' && session?.user?.role === 'GUIDE') {
+      if (status === 'authenticated' && hasGuideAccess(session?.user)) {
         try {
           const response = await fetch('/api/guide-profile');
           if (response.ok) {
@@ -49,7 +50,7 @@ export function GuideProfileForm() {
         }
       } else if (status === 'unauthenticated') {
         router.push('/login');
-      } else if (status === 'authenticated' && session?.user?.role !== 'GUIDE') {
+      } else if (status === 'authenticated' && !hasGuideAccess(session?.user)) {
         router.push('/guide-dashboard');
       }
     }

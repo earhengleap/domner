@@ -1,9 +1,10 @@
-// app/admin/users/page.tsx
+// app/admin/guides/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { hasAdminAccess } from "@/lib/access";
 import {
   BarChart,
   Bar,
@@ -27,7 +28,7 @@ interface UserRegistrationData {
   count: number;
 }
 
-export default function UsersDashboard() {
+export default function GuidesDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
@@ -36,7 +37,7 @@ export default function UsersDashboard() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session || session.user?.role !== "ADMIN") {
+    if (!session || !hasAdminAccess(session.user)) {
       router.push("/login");
     } else {
       fetchUsersData();
@@ -52,10 +53,10 @@ export default function UsersDashboard() {
         setUsers(data.users);
         setRegistrationData(data.registrationData);
       } else {
-        console.error("Failed to fetch users data");
+        console.error("Failed to fetch guides data");
       }
     } catch (error) {
-      console.error("Error fetching users data:", error);
+      console.error("Error fetching guides data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +102,7 @@ export default function UsersDashboard() {
                 <tr key={user.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" suppressHydrationWarning>
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

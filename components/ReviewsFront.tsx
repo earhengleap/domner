@@ -38,13 +38,19 @@ const ReviewFront: React.FC<ReviewFrontProps> = ({
     loop: true,
     initial: 0,
     created(s) {
-      s.moveToIdx(5, true, animation);
+      if (reviews.length > 0) {
+        s.moveToIdx(5, true, animation);
+      }
     },
     updated(s) {
-      s.moveToIdx(s.track.details.abs + 5, true, animation);
+      if (reviews.length > 0 && s.track?.details) {
+        s.moveToIdx(s.track.details.abs + 5, true, animation);
+      }
     },
     animationEnded(s) {
-      s.moveToIdx(s.track.details.abs + 5, true, animation);
+      if (reviews.length > 0 && s.track?.details) {
+        s.moveToIdx(s.track.details.abs + 5, true, animation);
+      }
     },
     breakpoints: {
       "(max-width: 768px)": {
@@ -90,35 +96,41 @@ const ReviewFront: React.FC<ReviewFrontProps> = ({
         Testimonials
       </p>
 
-      <div ref={sliderRef} className="keen-slider">
-        {reviews.map((review) => (
-          <div key={review.id} className="keen-slider__slide">
-            <Card className="p-8 shadow-md">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-start">
-                  <Avatar className="h-12 w-12 mr-4">
-                    <AvatarImage
-                      src={review.user.image || undefined}
-                      alt={review.user.name}
-                    />
-                    <AvatarFallback>{review.user.name[0]}</AvatarFallback>
-                  </Avatar>
+      {reviews.length > 0 ? (
+        <div ref={sliderRef} className="keen-slider">
+          {reviews.map((review) => (
+            <div key={review.id} className="keen-slider__slide">
+              <Card className="p-8 shadow-md">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start">
+                    <Avatar className="h-12 w-12 mr-4">
+                      <AvatarImage
+                        src={review.user.image || undefined}
+                        alt={review.user.name}
+                      />
+                      <AvatarFallback>{review.user.name[0]}</AvatarFallback>
+                    </Avatar>
 
-                  <h3 className="font-semibold text-lg items-center justify-center">
-                    {review.user.name}
-                  </h3>
+                    <h3 className="font-semibold text-lg items-center justify-center">
+                      {review.user.name}
+                    </h3>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <p className="text-gray-700 line-clamp-3">{review.content}</p>
-            </Card>
-          </div>
-        ))}
-      </div>
+                <p className="text-gray-700 line-clamp-3">{review.content}</p>
+              </Card>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+          No traveler reviews yet. Be the first to share your experience!
+        </div>
+      )}
 
       
       <ReviewFormModal

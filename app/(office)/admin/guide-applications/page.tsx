@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { hasAdminAccess } from "@/lib/access";
 
 interface Application {
   id: string;
@@ -22,7 +23,7 @@ export default function GuideApplications() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session || !hasAdminAccess(session.user)) {
       router.push('/login');
     } else {
       fetchApplications();
@@ -96,7 +97,7 @@ export default function GuideApplications() {
                         <p>
                           Applied on{' '}
                           <time dateTime={application.createdAt}>
-                            {new Date(application.createdAt).toLocaleDateString()}
+                            <span suppressHydrationWarning>{new Date(application.createdAt).toLocaleDateString()}</span>
                           </time>
                         </p>
                       </div>

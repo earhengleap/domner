@@ -5,18 +5,15 @@ import prisma from "@/lib/db";
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  console.log("GET request received at /api/trips");
 
   const searchParams = req.nextUrl.searchParams;
   const searchTerm = searchParams.get('search') || '';
-  console.log(`Search term: ${searchTerm}`);
 
   try {
     let guidePosts;
 
     if (searchTerm.length === 25 && searchTerm.startsWith('c')) {
       // This looks like an ID, so let's do a direct lookup
-      console.log("Performing direct ID lookup");
       guidePosts = await prisma.guidePost.findMany({
         where: { id: searchTerm },
         select: {
@@ -54,7 +51,6 @@ export async function GET(req: NextRequest) {
       });
     } else {
       // Perform a search query focusing on title, area, type, and location
-      console.log("Performing search query for title, area, type, and location");
       guidePosts = await prisma.guidePost.findMany({
         where: {
           OR: [
@@ -99,8 +95,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    console.log(`Found ${guidePosts.length} guide posts`);
-    console.log('Guide posts:', JSON.stringify(guidePosts, null, 2));
 
     const trips = guidePosts.map(post => ({
       id: post.id,
@@ -117,8 +111,6 @@ export async function GET(req: NextRequest) {
       languagesSpoken: post.user.guideForm?.languagesSpoken || [],
     }));
 
-    console.log(`Returning ${trips.length} trips`);
-    console.log('Trips:', JSON.stringify(trips, null, 2));
 
     return NextResponse.json({ trips });
   } catch (error) {

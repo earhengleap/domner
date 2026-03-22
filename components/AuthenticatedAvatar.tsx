@@ -23,23 +23,17 @@ export default function AuthenticatedAvatar({
 }) {
   const { data: session } = useSession();
   const { userName, userEmail, userProfile } = useUser();
-  const [avatarImage, setAvatarImage] = useState<string>("");
 
   const displayName = userName || session?.user?.name || '';
   const displayEmail = userEmail || session?.user?.email || '';
-
-  useEffect(() => {
-    // Update avatar image whenever userProfile or session changes
-    const newImage = userProfile?.image || session?.user?.image || '';
-    setAvatarImage(newImage);
-  }, [userProfile?.image, session?.user?.image]);
+  const displayImage = userProfile?.image || session?.user?.image || '';
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="cursor-pointer" asChild>
         <Avatar>
           <AvatarImage 
-            src={avatarImage} 
+            src={displayImage} 
             alt={displayName || "Profile"}
             className="object-cover"
           />
@@ -57,17 +51,16 @@ export default function AuthenticatedAvatar({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <Link href="/profile" className="w-full">
-          <DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer">
             Profile
           </DropdownMenuItem>
         </Link>
-        <DropdownMenuItem>
-          Billing
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          Team
-        </DropdownMenuItem>
-        <DropdownMenuItem>
+        <Link href="/booking-history" className="w-full">
+          <DropdownMenuItem className="cursor-pointer">
+            Booking History
+          </DropdownMenuItem>
+        </Link>
+        <DropdownMenuItem className="cursor-pointer">
           <LogoutBtn />
         </DropdownMenuItem>
       </DropdownMenuContent>

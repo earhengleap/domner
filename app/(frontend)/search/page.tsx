@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SearchComponents from "@/components/Search/SearchComponents";
 
 interface TripCard {
   id: string;
@@ -38,7 +39,6 @@ const SearchResults = () => {
       setIsLoading(true);
       setError(null);
       try {
-        console.log(`Fetching trips with query: ${query}`);
         const response = await fetch(
           `/api/trips?search=${encodeURIComponent(query || "")}`
         );
@@ -46,14 +46,12 @@ const SearchResults = () => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Received data:", JSON.stringify(data, null, 2));
         if (Array.isArray(data.trips)) {
           if (
             data.trips.length === 1 &&
             query?.length === 25 &&
             query.startsWith("c")
           ) {
-            // If it's a direct ID lookup and we found exactly one result, navigate directly
             router.push(`/guide-posts/${data.trips[0].id}`);
           } else {
             setTrips(data.trips);
@@ -78,13 +76,11 @@ const SearchResults = () => {
   }, [query, router]);
 
   const handleCardClick = (tripId: string) => {
-    console.log(`Handling click for trip ID: ${tripId}`);
     if (!tripId) {
       console.error("Trip ID is undefined or empty");
       return;
     }
     const url = `/guide/${tripId}`;
-    console.log(`Navigating to URL: ${url}`);
     router.push(url);
   };
 
@@ -101,12 +97,13 @@ const SearchResults = () => {
   }
 
   return (
-    <div className="py-36 mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Search Results for "{query}"</h1>
+    <div className="pt-24 pb-12 mx-auto p-4 flex flex-col items-center">
+      <SearchComponents />
+      <h1 className="text-3xl font-bold mb-6 text-center mt-6">Search Results for "{query}"</h1>
       {trips.length === 0 ? (
         <p className="text-center mt-6">No trips found for this search.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-7xl">
           {trips.map((trip) => (
             <Card
               key={trip.id}
@@ -126,7 +123,7 @@ const SearchResults = () => {
                 <CardTitle className="text-lg mb-2">{trip.title}</CardTitle>
                 <p className="text-sm text-gray-600">Guide: {trip.guide}</p>
                 <p className="text-sm text-gray-600">
-                  Date: {new Date(trip.date).toLocaleDateString()}
+                  Date: <span suppressHydrationWarning>{new Date(trip.date).toLocaleDateString()}</span>
                 </p>
                 <p className="text-sm text-gray-600">
                   Location: {trip.location}
@@ -153,8 +150,6 @@ const SearchResults = () => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log("Book button clicked");
-                    // Add booking logic here if needed
                   }}
                 >
                   Book
@@ -168,4 +163,14 @@ const SearchResults = () => {
   );
 };
 
-export default SearchResults;
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center h-screen">
+        <div className="loader" />
+      </div>
+    }>
+      <SearchResults />
+    </Suspense>
+  );
+}

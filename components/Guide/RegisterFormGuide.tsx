@@ -110,11 +110,9 @@ const RegistrationForm: React.FC = () => {
           throw new Error(data.error || 'Something went wrong');
         }
       } else {
-        console.log('Success response:', data);
         router.push('/guide-pending');
       }
     } catch (err) {
-      console.error('Error details:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);

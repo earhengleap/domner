@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
+import {
+  getDefaultAuthenticatedPath,
+  hasAdminAccess,
+  hasGuideAccess,
+  isSpecialMultiRoleUser,
+} from "@/lib/access";
 
 type UserRole = "ADMIN" | "GUIDE" | "USER";
 
 interface Token {
   role?: UserRole;
+  email?: string;
 }
 
 const allowedPaths: Record<UserRole, string[]> = {
@@ -31,6 +38,9 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/api") ||
+    path.startsWith("/search") ||
+    path.startsWith("/explore") ||
+    path.startsWith("/about-us") ||
     path === "/" ||
     publicFilePattern.test(path)
   ) {
@@ -54,22 +64,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const isAllowedPath = allowedPaths[userRole].some((allowedPath) =>
-    path.startsWith(allowedPath)
-  );
+  const isAllowedPath =
+    isSpecialMultiRoleUser(token) ||
+    hasAdminAccess(token) && path.startsWith("/admin") ||
+    hasGuideAccess(token) && path.startsWith("/guide") ||
+    allowedPaths[userRole].some((allowedPath) => path.startsWith(allowedPath));
+
   if (!isAllowedPath) {
-    let redirectPath;
-    switch (userRole) {
-      case "ADMIN":
-        redirectPath = "/admin/dashboard";
-        break;
-      case "GUIDE":
-        redirectPath = "/guide-dashboard";
-        break;
-      case "USER":
-        redirectPath = "/";
-        break;
-    }
+    const redirectPath = getDefaultAuthenticatedPath(token);
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 

@@ -74,13 +74,11 @@ export async function POST(request: any) {
         id: supabaseUserId,
         name,
         email,
-        password,
         hashedPassword,
         role,
       },
     });
 
-    console.log(newUser);
     return NextResponse.json(
       {
         message: "User created successfully",
@@ -89,7 +87,6 @@ export async function POST(request: any) {
       { status: 201 }
     );
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
         error,

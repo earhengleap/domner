@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
+import { hasAdminAccess } from "@/lib/access";
 
 const prisma = new PrismaClient();
 // Add this export to mark the route as dynamic
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user?.role !== 'ADMIN') {
+  if (!session || !hasAdminAccess(session.user)) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 

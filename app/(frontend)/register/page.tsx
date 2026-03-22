@@ -1,34 +1,89 @@
+"use client";
+import React from "react";
 import RegisterForm from "@/components/RegisterForm";
 import Image from "next/image";
-import React from "react";
-import background from "../../../public/loginpic.jpg";
+import { motion } from "framer-motion";
 
 export default function Register() {
   return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={{
-        backgroundImage: `url(${background.src})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      
-        {/* Overlay for Readability */}
-        <div className="absolute inset-0 bg-black bg-opacity-40 z-10"></div>
-        <section className="rrelative z-10 text-xl  p-8 w-full max-w-lg">
-        {/* Content Container */}
-        <div className="flex flex-col items-center justify-center   mx-auto lg:py-0">
-          <div className="w-full bg-white rounded-lg shadow-2xl dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-            <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-              <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white text-center">
-                Create a new account
-              </h1>
-              <RegisterForm role="USER" />
+    <main className="relative min-h-screen flex items-center justify-center overflow-hidden">
+
+      {/* Hero Background with Gradient Overlays */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/loginpic.jpg"
+          alt="Cambodia Background"
+          fill
+          className="object-cover scale-105"
+          priority
+        />
+        <div className="absolute inset-0 z-10 bg-gradient-to-br from-[#292929]/80 via-[#292929]/40 to-transparent" />
+        <div className="absolute inset-0 z-10 backdrop-blur-[2px]" />
+      </div>
+
+      {/* Main Content Card */}
+      <motion.section
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.8, cubicBezier: [0.16, 1, 0.3, 1] }}
+        className="relative z-20 w-full max-w-md px-6 py-12 mt-20 md:mt-24"
+      >
+        <div className="overflow-hidden rounded-[2.5rem] bg-[#fdfbf9]/95 shadow-2xl backdrop-blur-2xl border border-white/20">
+          <div className="px-8 pt-10 pb-12 md:px-12">
+            {/* Card Header & Branding */}
+            <div className="mb-8 text-center space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex justify-center"
+              >
+                <div className="bg-white p-4 rounded-3xl shadow-sm border border-brown-100/20">
+                  <Image
+                    src="/DomnerDesktop.png"
+                    alt="Domner Logo"
+                    width={60}
+                    height={60}
+                    className="mx-auto"
+                  />
+                </div>
+              </motion.div>
+              
+              <div className="space-y-1">
+                <motion.h1 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-3xl font-black text-[#292929] tracking-tight"
+                >
+                  Create Account
+                </motion.h1>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-[#A18167] font-medium text-sm uppercase tracking-widest"
+                >
+                  Begin your authentic adventure
+                </motion.p>
+              </div>
             </div>
+
+            {/* Registration Form */}
+            <RegisterForm role="USER" />
           </div>
         </div>
-      </section>
-    </div>
+
+        {/* Decorative Elements */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="mt-8 text-center text-xs font-bold uppercase tracking-[0.3em] text-white/70 drop-shadow-md"
+        >
+          &copy; {new Date().getFullYear()} Domner Platform. All rights reserved.
+        </motion.p>
+      </motion.section>
+    </main>
   );
 }

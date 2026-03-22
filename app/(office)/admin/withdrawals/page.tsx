@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from 'next/navigation';
 import { authOptions } from "@/lib/authOptions";
 import Withdrawals from '@/components/Office/Withdrawal';
+import { hasAdminAccess } from "@/lib/access";
 
 export const metadata: Metadata = {
   title: 'Admin Withdrawals Dashboard',
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default async function AdminWithdrawalsPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!session || !hasAdminAccess(session.user)) {
     redirect('/login');
   }
 

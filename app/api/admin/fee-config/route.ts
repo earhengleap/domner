@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
+import { hasAdminAccess } from "@/lib/access";
 
 const prisma = new PrismaClient();
 // Add this export to mark the route as dynamic
@@ -20,7 +21,7 @@ export async function GET(): Promise<NextResponse<FeeConfigurationResponse | Err
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+    if (!session?.user || !hasAdminAccess(session.user)) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 403 }
@@ -48,7 +49,7 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+    if (!session?.user || !hasAdminAccess(session.user)) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 403 }

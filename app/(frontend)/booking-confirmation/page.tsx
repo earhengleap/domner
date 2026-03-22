@@ -1,12 +1,10 @@
-// app/booking-confirmation/page.tsx
-
-'use client';
+"use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import PayPalPayment from '@/components/PayPalPayment';
 
-export default function BookingConfirmationPage() {
+function BookingConfirmationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [bookingDetails, setBookingDetails] = useState<any>(null);
@@ -55,7 +53,7 @@ export default function BookingConfirmationPage() {
       <h1 className="text-2xl font-bold mb-4">Confirm Your Booking</h1>
       <div className="mb-4">
         <p>Booking ID: {bookingDetails.id}</p>
-        <p>Date: {new Date(bookingDetails.date).toLocaleDateString()}</p>
+        <p>Date: <span suppressHydrationWarning>{new Date(bookingDetails.date).toLocaleDateString()}</span></p>
         <p>Adults: {bookingDetails.adultCount}</p>
         <p>Total Amount: ${bookingDetails.totalAmount}</p>
       </div>
@@ -66,5 +64,13 @@ export default function BookingConfirmationPage() {
         onError={handlePaymentError}
       />
     </div>
+  );
+}
+
+export default function BookingConfirmationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BookingConfirmationContent />
+    </Suspense>
   );
 }

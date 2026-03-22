@@ -4,7 +4,6 @@ import prisma from "@/lib/db";
 // Add this export to mark the route as dynamic
 export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
-  console.log("GET request received at /api/all-guide-posts");
 
   try {
     const posts = await prisma.guidePost.findMany({
@@ -27,7 +26,6 @@ export async function GET(req: Request) {
       photos: post.photos || [],
     }));
 
-    console.log("API response:", JSON.stringify(formattedPosts, null, 2));
 
     return NextResponse.json(formattedPosts);
   } catch (error) {

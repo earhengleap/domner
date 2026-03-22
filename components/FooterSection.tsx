@@ -164,7 +164,7 @@ const Footer: React.FC = () => {
               <div className="relative w-40 h-28 flex items-center justify-center">
                 <div className="absolute inset-0 bg-white/90 rounded-xl group-hover:bg-white/20 transition-all duration-300"></div>
                 <img
-                  src="C:\Users\PC\Desktop\Project major 1\domner-kh24\public\cambodia.png"
+                  src="/cambodia.png"
                   alt="Cambodia Tourism"
                   className="h-28 lg:h-20 object-contain p-2 relative z-10"
                 />

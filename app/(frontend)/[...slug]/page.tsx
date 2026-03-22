@@ -74,11 +74,9 @@ const SlugPage = () => {
     setIsLoading(true);
     setError(null);
     try {
-      console.log(`Fetching trips with term: ${term} and type: ${type}`);
       const response = await axios.get("/api/trips", {
         params: { search: term, type: type },
       });
-      console.log("Received trip data:", response.data);
       if (Array.isArray(response.data.trips)) {
         setTrips(response.data.trips);
         setFilteredTrips(response.data.trips);
@@ -157,7 +155,6 @@ const SlugPage = () => {
   const handleNavigateToGuide = useCallback(
     async (tripId: string) => {
       if (!tripId) {
-        console.error("No trip ID provided");
         return;
       }
 
@@ -236,7 +233,7 @@ const SlugPage = () => {
                 </CardTitle>
                 <p className="text-sm text-gray-600">Guide: {trip.guide}</p>
                 <p className="text-sm text-gray-600">
-                  Date: {new Date(trip.date).toLocaleDateString()}
+                  Date: <span suppressHydrationWarning>{new Date(trip.date).toLocaleDateString()}</span>
                 </p>
                 <p className="text-sm text-gray-600">
                   Location: {trip.location}

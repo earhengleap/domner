@@ -11,10 +11,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { query } = body;
 
-    console.log('Received POST search query:', query);
 
     if (typeof query !== 'string') {
-      console.log('Invalid query parameter in POST request');
       return NextResponse.json({ error: 'Invalid query parameter' }, { status: 400 });
     }
 
@@ -42,7 +40,6 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log('Found guide posts in POST request:', guidePosts.length);
     return NextResponse.json(guidePosts);
   } catch (error) {
     console.error('Search error in POST request:', error);

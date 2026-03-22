@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import prisma from "@/lib/db";
 import { authOptions } from "@/lib/authOptions";
 import { createClient } from "@supabase/supabase-js";
+import { hasGuideAccess } from "@/lib/access";
 
 // Add this export to mark the route as dynamic
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ async function validateSession() {
     throw new Error("Unauthorized");
   }
 
-  if (session.user.role !== "GUIDE") {
+  if (!hasGuideAccess(session.user)) {
     throw new Error("Access denied. Guide role required.");
   }
 

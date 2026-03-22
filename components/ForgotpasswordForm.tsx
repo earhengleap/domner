@@ -18,15 +18,12 @@ export default function ForgotPasswordForm() {
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(data: any) {
-    console.log(data);
     try {
       setLoading(true);
-      console.log("Attempting to sign in with credentials:", data);
       const loginData = await signIn("credentials", {
         ...data,
         redirect: false,
       });
-      console.log("SignIn response:", loginData);
       if (loginData?.error) {
         setLoading(false);
         toast.error("Sign-in error: Check your credentials");
@@ -38,7 +35,7 @@ export default function ForgotPasswordForm() {
       }
     } catch (error) {
       setLoading(false);
-      console.error("Network Error:", error);
+      
       toast.error("Its seems something is wrong with your Network");
     }
   }

@@ -14,9 +14,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const notifications = await prisma.notification.findMany({
-      where: { userId: session.user.id },
+    const unreadOnly = req.nextUrl.searchParams.get("unreadOnly") === "true";
+    const limit = Number(req.nextUrl.searchParams.get("limit") || "20");
+
+    const notifications = await (prisma as any).notification.findMany({
+      where: {
+        userId: session.user.id,
+        ...(unreadOnly ? { isRead: false } : {}),
+      },
       orderBy: { createdAt: 'desc' },
+      take: Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 50) : 20,
     });
 
     return NextResponse.json(notifications);
@@ -28,13 +35,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, message, type, bookingDetails } = await req.json();
-
-    const newNotification = await prisma.notification.create({
+    const { userId, message, type, bookingDetails, relatedPostId, actorId } = await req.json();
+    
+    const newNotification = await (prisma as any).notification.create({
       data: {
         userId,
         message,
-        bookingDetails: JSON.stringify(bookingDetails),
+        type,
+        bookingDetails: bookingDetails ? JSON.stringify(bookingDetails) : null,
+        relatedPostId,
+        actorId,
         isRead: false,
       },
     });
@@ -55,7 +65,7 @@ export async function PUT(req: NextRequest) {
 
     const { id } = await req.json();
 
-    await prisma.notification.update({
+    await (prisma as any).notification.update({
       where: { id },
       data: { isRead: true },
     });

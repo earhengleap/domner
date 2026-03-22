@@ -19,7 +19,6 @@ model User {
   verificationToken        String?
   image                    String?
   hashedPassword           String
-  password                 String
   role                     UserRole       @default(USER)
   createdAt                DateTime       @default(now())
   updatedAt                DateTime       @updatedAt
@@ -30,7 +29,7 @@ model User {
   guidePosts               GuidePost[]
   guideProfile             GuideProfile?
   notifications            Notification[]
-  user_profiles            user_profiles?
+  user_profile             UserProfile?
   withdrawals        Withdrawal[] @relation("UserWithdrawals")
   guideFinance             GuideFinance[]
   guideBalance             GuideBalance[]
@@ -42,7 +41,6 @@ model User {
   processedWithdrawals Withdrawal[] @relation("AdminProcessedWithdrawals")
   
 
-  Notifications Notifications[]
 }
 
 model Account {
@@ -63,16 +61,18 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-model user_profiles {
-  id       String    @id @default(uuid()) @db.Uuid
-  userId   String    @unique @db.Uuid
-  dob      DateTime?
-  image    String?
-  username String?
-  address  String?
+model UserProfile {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @unique @db.Uuid
+  dob       DateTime?
+  image     String?
+  username  String?
+  address   String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
 }
 
 model GuideProfile {
@@ -216,11 +216,14 @@ model FeeConfiguration {
 model Notification {
   id             String   @id @default(cuid())
   userId         String   @db.Uuid
+  type           String?
   message        String
   bookingDetails String?
+  relatedPostId  String?
+  actorId        String?  @db.Uuid
   isRead         Boolean  @default(false)
   createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 model GuideBalance {
   id            String   @id @default(cuid())
@@ -282,32 +285,32 @@ enum CambodiaProvince {
   PREAH_VIHEAR
   PREY_VENG
   PURSAT
-  RATANAKIRI
-  SIEM_REAP
-  PREAH_SIHANOUK
-  STUNG_TRENG
-  SVAY_RIENG
-  TAKEO
-  ODDAR_MEANCHEY
-  PAILIN
-  TBOUNG_KHMUM
+  RATANAKIR
+  siem_reap
+  preah_sihanouk
+  stung_treng
+  svay_rieng
+  takeo
+  oddar_meanchey
+  pailin
+  tboung_khmum
 }
 
-enum PostArea {
-  RURAL
-  COASTAL
-  MOUNTAIN
-  FOREST
-  RIVERSIDE
-  WATERFALL
-  OTHER
+enum postarea {
+  rural
+  coastal
+  mountain
+  forest
+  riverside
+  waterfall
+  other
 }
 
-enum PostCategory {
-  FOOD
-  DRINK
-  RESORT
-  OTHER
+enum postcategory {
+  food
+  drink
+  resort
+  oTHER
 }
 
 // New models for user posts
@@ -363,17 +366,7 @@ model Hashtag {
   lastUsed  DateTime @default(now())
   createdAt DateTime @default(now())
 }
-model Notifications {
-  id            String   @id @default(cuid())
-  userId        String   @db.Uuid
-  type          String
-  message       String
-  relatedPostId String?
-  actorId       String?  @db.Uuid
-  read          Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
+
 
 
 enum WithdrawalStatus {

@@ -41,11 +41,20 @@ const UserContext = createContext<UserContextType>(defaultContextValue);
 export function UserProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
   const { toast } = useToast();
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [userImage, setUserImage] = useState<string | null>(null);
+  const [userName, setUserName] = useState(session?.user?.name || '');
+  const [userEmail, setUserEmail] = useState(session?.user?.email || '');
+  const [userImage, setUserImage] = useState<string | null>(session?.user?.image || null);
   const [isLoading, setIsLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // Sync with session if it changes (e.g. after login)
+  useEffect(() => {
+    if (session?.user) {
+      if (!userName) setUserName(session.user.name || '');
+      if (!userEmail) setUserEmail(session.user.email || '');
+      if (!userImage) setUserImage(session.user.image || null);
+    }
+  }, [session, userName, userEmail, userImage]);
 
   // Fetch user profile when session changes
   useEffect(() => {

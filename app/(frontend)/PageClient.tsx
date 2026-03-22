@@ -9,7 +9,6 @@
 
     //   useEffect(() => {
     //     if (session) {
-    //       console.log(session.user);
     //     }
     //   }, [session]);
 

@@ -1,24 +1,9 @@
 // app/api/aba-payway-return/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import prisma from "@/lib/db";
-import axios from "axios";
+import { getPaywayBaseUrl, getPaywayHash, getPaywayMerchantId, getPaywayRequestTime, postPaywayMultipart } from "@/lib/payway";
 
 export const dynamic = "force-dynamic";
-
-const ABA_PAYWAY_API_KEY = process.env.ABA_PAYWAY_API_KEY!;
-const ABA_PAYWAY_MERCHANT_ID = process.env.ABA_PAYWAY_MERCHANT_ID!;
-const BASE_URL = process.env.ABA_PAWWAY_API_URL 
-  ? process.env.ABA_PAWWAY_API_URL.split('/purchase')[0].split('/checkout')[0] 
-  : "https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments";
-
-const CHECK_TRANSACTION_URL = `${BASE_URL}/check-transaction-2`;
-
-function getHash(data: string): string {
-  const hmac = crypto.createHmac("sha512", ABA_PAYWAY_API_KEY);
-  hmac.update(data);
-  return hmac.digest("base64");
-}
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,32 +15,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // Format req_time as YYYYMMDDHHmmss
-    const now = new Date();
-    const req_time = now.getFullYear().toString() +
-      (now.getMonth() + 1).toString().padStart(2, '0') +
-      now.getDate().toString().padStart(2, '0') +
-      now.getHours().toString().padStart(2, '0') +
-      now.getMinutes().toString().padStart(2, '0') +
-      now.getSeconds().toString().padStart(2, '0');
-
-    // Hash Order: req_time + merchant_id + tran_id
-    const hashString = req_time + ABA_PAYWAY_MERCHANT_ID + tran_id;
-    const hash = getHash(hashString);
+    const req_time = getPaywayRequestTime();
+    const merchant_id = getPaywayMerchantId();
+    const hash = getPaywayHash([req_time, merchant_id, tran_id]);
 
     const postData = {
       req_time,
-      merchant_id: ABA_PAYWAY_MERCHANT_ID,
+      merchant_id,
       tran_id,
       hash
     };
 
     // Verify transaction status with ABA
-    const paywayResponse = await axios.post(CHECK_TRANSACTION_URL, postData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const paywayResponse = await postPaywayMultipart(
+      `${getPaywayBaseUrl()}/check-transaction-2`,
+      postData
+    );
 
-    const paymentStatusCode = paywayResponse.data?.data?.payment_status_code;
+    const paymentStatusCode = paywayResponse?.data?.payment_status_code;
 
     // If payment is approved (0)
     if (paymentStatusCode === 0 || paymentStatusCode === "0") {

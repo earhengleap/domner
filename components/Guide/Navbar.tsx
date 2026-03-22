@@ -1,14 +1,14 @@
-//components/Guide/Navbar.tsx
 "use client";
-import { useSession } from "next-auth/react";
-import React, { useEffect, useState } from "react";
-import AuthenticatedAvatar from "../AuthenticatedAvatar";
-import { Button } from "../ui/button";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import axios from 'axios';
-import { Bell } from 'lucide-react';
-import Logo from '@/public/DomnerDesktop.png'
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { Bell, ChevronRight, Menu, X } from "lucide-react";
+import Logo from "@/public/DomnerDesktop.png";
 import GuideProfileAvatar from "../GuideProfileAvatar";
+import { Button } from "../ui/button";
+import { hasGuideAccess } from "@/lib/access";
 
 interface Notification {
   id: string;
@@ -19,28 +19,65 @@ interface Notification {
   bookingDetails?: string;
 }
 
+const NAV_ITEMS = [
+  { href: "/guide-dashboard", label: "Dashboard" },
+  { href: "/guide-dashboard/create-post", label: "Create" },
+  { href: "/guide-dashboard/manage", label: "Manage" },
+  { href: "/guide/booking-history", label: "Bookings" },
+  { href: "/guide-dashboard/cancel-requests", label: "Requests" },
+  { href: "/guide-dashboard/finance", label: "Finance" },
+];
+
+function isRouteActive(pathname: string, href: string) {
+  if (href === "/guide-dashboard") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function formatNotificationMessage(notification: Notification) {
+  try {
+    const details = notification.bookingDetails
+      ? JSON.parse(notification.bookingDetails)
+      : null;
+
+    if (notification.type === "booking" && details?.name) {
+      return `${details.name} made a booking.`;
+    }
+
+    if (notification.type === "booking_cancel_request") {
+      return notification.message || "A traveler requested a cancellation review.";
+    }
+
+    if (notification.type === "booking_change_request") {
+      return notification.message || "A traveler requested booking changes.";
+    }
+  } catch {
+    return notification.message;
+  }
+
+  return notification.message;
+}
+
 export default function Navbar() {
-  const [showModal, setShowModal] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [activeTab, setActiveTab] = useState<'unread' | 'all'>('unread');
-
-  const toggleModal = () => setShowModal((prev) => !prev);
-  const toggleNotifications = () => setShowNotifications((prev) => !prev);
-
+  const pathname = usePathname();
   const { data: session, status } = useSession();
+  const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activeTab, setActiveTab] = useState<"unread" | "all">("unread");
 
   useEffect(() => {
+    setMounted(true);
+
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      if (scrollY > 0) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
+      setScrolled(window.scrollY > 8);
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll);
 
     return () => {
@@ -49,212 +86,276 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    setShowMobileMenu(false);
+    setShowNotifications(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!showNotifications || status !== "authenticated") {
+      return;
+    }
+
+    let cancelled = false;
+
     const fetchNotifications = async () => {
       try {
-        const response = await axios.get('/api/notifications');
-        setNotifications(response.data);
+        const response = await fetch("/api/notifications?limit=12", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load notifications");
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setNotifications(data);
+        }
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        console.error("Error fetching notifications:", error);
       }
     };
 
-    if (status === 'authenticated') {
-      fetchNotifications();
-      // Set up polling to check for new notifications every minute
-      const intervalId = setInterval(fetchNotifications, 60000);
-      return () => clearInterval(intervalId);
-    }
-  }, [status]);
+    void fetchNotifications();
+    const intervalId = setInterval(fetchNotifications, 60000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [showNotifications, status]);
 
   const markAsRead = async (id: string) => {
     try {
-      await axios.put('/api/notifications', { id });
-      setNotifications(notifications.map(n => n.id === id ? {...n, isRead: true} : n));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  };
+      await fetch("/api/notifications", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
 
-  const renderNotification = (notification: Notification) => {
-    if (notification.type === 'booking') {
-      const bookingDetails = notification.bookingDetails ? JSON.parse(notification.bookingDetails) : null;
-      return (
-        <div>
-          <p className="text-sm font-semibold">New Booking Alert!</p>
-          <p className="text-sm">{bookingDetails?.name} has made a booking.</p>
-          {/* Add more booking details here if needed */}
-        </div>
+      setNotifications((current) =>
+        current.map((notification) =>
+          notification.id === id
+            ? { ...notification, isRead: true }
+            : notification
+        )
       );
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
     }
-    // Handle other notification types here
-    return <p className="text-sm">{notification.message}</p>;
   };
 
   const isLoggedIn = status === "authenticated";
-  const unreadNotifications = notifications.filter(n => !n.isRead);
+  const unreadNotifications = notifications.filter(
+    (notification) => !notification.isRead
+  );
+  const visibleNotifications = notifications.filter(
+    (notification) => activeTab === "all" || !notification.isRead
+  );
 
   return (
-    <div>
-      <nav
-        className={`fixed w-full mx-auto top-0 text-xl left-[50%] translate-x-[-50%] z-20 transition duration-300 ${
+    <nav className="fixed inset-x-0 top-0 z-30 px-3 pt-3 sm:px-5">
+      <div
+        className={`mx-auto max-w-7xl rounded-[1.75rem] border transition-all duration-300 ${
           scrolled
-            ? "bg-white text-gray-900 shadow-md"
-            : "bg-white text-gray-900"
+            ? "border-[#d7c0af] bg-white/94 shadow-[0_14px_40px_rgba(39,26,16,0.12)] backdrop-blur-xl"
+            : "border-white/60 bg-white/88 shadow-[0_8px_30px_rgba(39,26,16,0.08)] backdrop-blur-lg"
         }`}
       >
-        <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-          <a
-            href="/guide-dashboard"
-            className="flex items-center space-x-3 rtl:space-x-reverse"
-          >
-            <img
-              src={Logo.src}
-              width={32}
-              height={32}
-              className="h-8 w-auto"
-              alt="DomnerLogo"
-            />
-          </a>
+        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Link href="/guide-dashboard" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f5ede6] shadow-inner">
+              <img
+                src={Logo.src}
+                width={30}
+                height={30}
+                className="h-8 w-auto"
+                alt="Domner Logo"
+              />
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-[11px] uppercase tracking-[0.28em] text-[#A18167]">
+                Guide Console
+              </div>
+              <div className="text-sm font-semibold text-slate-900">
+                Professional Workspace
+              </div>
+            </div>
+          </Link>
 
-          <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse z-10 gap-2 items-center">
-            {isLoggedIn && (
+          <div className="hidden items-center gap-1 lg:flex">
+            {NAV_ITEMS.map((item) => {
+              const active = isRouteActive(pathname, item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                    active
+                      ? "bg-[#2f251d] text-white shadow-[0_10px_24px_rgba(47,37,29,0.18)]"
+                      : "text-slate-600 hover:bg-[#f7efe8] hover:text-[#2f251d]"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {mounted && isLoggedIn ? (
               <div className="relative">
-                <button onClick={toggleNotifications} className="p-1 rounded-full hover:bg-gray-200">
-                  <Bell />
+                <button
+                  type="button"
+                  onClick={() => setShowNotifications((current) => !current)}
+                  className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full border transition-all duration-200 ${
+                    showNotifications
+                      ? "border-[#A18167] bg-[#f7efe8] text-[#2f251d]"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-[#d7c0af] hover:bg-[#fcf7f2]"
+                  }`}
+                  aria-label="Open notifications"
+                >
+                  <Bell className="h-5 w-5" />
                   {unreadNotifications.length > 0 && (
-                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                    <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">
                       {unreadNotifications.length}
                     </span>
                   )}
                 </button>
+
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-20">
-                    <div className="flex border-b">
-                      <button
-                        className={`flex-1 p-2 ${activeTab === 'unread' ? 'bg-gray-100' : ''}`}
-                        onClick={() => setActiveTab('unread')}
-                      >
-                        Unread
-                      </button>
-                      <button
-                        className={`flex-1 p-2 ${activeTab === 'all' ? 'bg-gray-100' : ''}`}
-                        onClick={() => setActiveTab('all')}
-                      >
-                        All
-                      </button>
+                  <div className="absolute right-0 mt-3 w-[22rem] overflow-hidden rounded-3xl border border-[#eadfd6] bg-white shadow-[0_22px_60px_rgba(35,25,17,0.18)]">
+                    <div className="border-b border-[#f0e4da] px-5 py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">
+                            Notifications
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Updates from bookings and traveler requests
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-[#f7efe8] px-2.5 py-1 text-xs font-medium text-[#A18167]">
+                          {unreadNotifications.length} unread
+                        </span>
+                      </div>
+                      <div className="mt-4 flex rounded-full bg-[#f8f3ee] p-1">
+                        {(["unread", "all"] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setActiveTab(tab)}
+                            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition-all ${
+                              activeTab === tab
+                                ? "bg-white text-slate-900 shadow-sm"
+                                : "text-slate-500 hover:text-slate-700"
+                            }`}
+                          >
+                            {tab === "unread" ? "Unread" : "All"}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="py-2 max-h-80 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <p className="text-center text-gray-500">No notifications</p>
+
+                    <div className="max-h-[24rem] overflow-y-auto px-2 py-2">
+                      {visibleNotifications.length > 0 ? (
+                        visibleNotifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`mx-2 mb-2 rounded-2xl border px-4 py-3 transition ${
+                              notification.isRead
+                                ? "border-transparent bg-[#fbf8f5]"
+                                : "border-[#eadfd6] bg-white shadow-sm"
+                            }`}
+                          >
+                            <p className="text-sm font-medium text-slate-800">
+                              {formatNotificationMessage(notification)}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {new Date(notification.createdAt).toLocaleString()}
+                            </p>
+                            {!notification.isRead && (
+                              <button
+                                type="button"
+                                onClick={() => markAsRead(notification.id)}
+                                className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#A18167] transition hover:text-[#2f251d]"
+                              >
+                                Mark as read
+                                <ChevronRight className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))
                       ) : (
-                        notifications
-                          .filter(n => activeTab === 'all' || !n.isRead)
-                          .map((notification) => (
-                            <div key={notification.id} className={`px-4 py-2 hover:bg-gray-100 ${notification.isRead ? 'opacity-50' : ''}`}>
-                              {renderNotification(notification)}
-                              <p className="text-xs text-gray-500">{new Date(notification.createdAt).toLocaleString()}</p>
-                              {!notification.isRead && (
-                                <button 
-                                  onClick={() => markAsRead(notification.id)}
-                                  className="text-xs text-blue-500 hover:text-blue-700"
-                                >
-                                  Mark as read
-                                </button>
-                              )}
-                            </div>
-                          ))
+                        <div className="px-5 py-10 text-center text-sm text-slate-500">
+                          No notifications in this view.
+                        </div>
                       )}
                     </div>
                   </div>
                 )}
               </div>
-            )}
-            {isLoggedIn ? (
-              <GuideProfileAvatar session={session} />
-            ) : (
+            ) : mounted ? (
               <Button
-                   className="p-2 px-6 rounded-sm font-semibold cursor-pointer bg-[#A18167] border-[#A18167] text-white hover:bg-[#292929] hover:border-[#292929] transition-colors"
-                     asChild
-                    variant={"outline"}
-                      >
-             <Link href="/login">Log in</Link>
-          </Button>
+                className="rounded-full bg-[#A18167] px-5 text-white hover:bg-[#2f251d]"
+                asChild
+              >
+                <Link href="/login">Log in</Link>
+              </Button>
+            ) : (
+              <div className="h-11 w-11 rounded-full bg-primary/10" />
             )}
 
+            {mounted && isLoggedIn ? (
+              <GuideProfileAvatar session={session} />
+            ) : null}
+
             <button
-              data-collapse-toggle="navbar-cta"
               type="button"
-              className="inline-flex items-center p-2 w-10 h-10 justify-center text-xl text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-              aria-controls="navbar-cta"
-              aria-expanded="false"
+              onClick={() => setShowMobileMenu((current) => !current)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#d7c0af] hover:bg-[#fcf7f2] lg:hidden"
+              aria-label="Toggle guide navigation"
             >
-              <span className="sr-only">Open main menu</span>
-              <svg
-                className="w-5 h-5"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 17 14"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M1 1h15M1 7h15M1 13h15"
-                />
-              </svg>
+              {showMobileMenu ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </button>
           </div>
-          <div
-            className="items-right justify-between hidden w-full md:flex md:w-auto md:order-1 right"
-            id="navbar-cta"
-          >
-            <ul
-              className={`flex flex-col font-medium p-4 md:p-0 mt-4 border rounded-lg md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 text-gray-900`}
-            >
-              <li>
-                <a
-                   href="/guide-dashboard"
-                    className={`block py-2 px-3 md:p-0 rounded text-[#A18167] hover:text-[#292929] text-lg transition-colors duration-200`}
-                    aria-current="page"
+        </div>
+
+        <div
+          className={`overflow-hidden transition-all duration-300 lg:hidden ${
+            showMobileMenu ? "max-h-[32rem] border-t border-[#f0e4da]" : "max-h-0"
+          }`}
+        >
+          <div className="space-y-2 px-4 py-4 sm:px-6">
+            {NAV_ITEMS.map((item) => {
+              const active = isRouteActive(pathname, item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                    active
+                      ? "bg-[#2f251d] text-white shadow-sm"
+                      : "bg-[#fcf7f2] text-slate-700 hover:bg-[#f7efe8]"
+                  }`}
                 >
-                  Home
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/guide-dashboard/create-post"
-                  className={`block py-2 px-3 md:p-0 rounded md:hover:bg-transparent text-[#A18167] hover:text-[#292929] text-lg transition-colors duration-200`}
-                >
-                  Create
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/guide-dashboard/manage"
-                  className={`block py-2 px-3 md:p-0 rounded md:hover:bg-transparent text-[#A18167] hover:text-[#292929] text-lg transition-colors duration-200`}
-                >
-                  Manage
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/guide-dashboard/help"
-                  className={`block py-2 px-3 md:p-0 rounded hover:bg-gray-100 md:hover:bg-transparent hover:text-green-500 text-lg`}
-                >
-                  Help
-                </a>
-              </li>
-              {session?.user?.role === 'GUIDE' && (
-                <Link href="/guide-dashboard/profile" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                  Guide Profile
+                  <span>{item.label}</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Link>
-              )}
-            </ul>
+              );
+            })}
           </div>
         </div>
-      </nav>
-    </div>
+      </div>
+    </nav>
   );
 }

@@ -1,5 +1,5 @@
-// components/user/UserBookingStats.tsx
 'use client'
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,7 @@ export function UserBookingStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const response = await fetch("/api/user/bookings/stats");
+        const response = await fetch("/api/bookings/stats");
         if (!response.ok) throw new Error("Failed to fetch stats");
         const data = await response.json();
         setStats(data);
@@ -39,7 +39,7 @@ export function UserBookingStats() {
     }
 
     fetchStats();
-  }, []);
+  }, [toast]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

@@ -44,29 +44,44 @@ export async function POST(
     }
 
     // Find user by email
-    const user = await prisma.user.findUnique({
+    const existingUser = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
 
-    if (!user) {
+    if (!existingUser) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Update user's image
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: { image: imageUrl },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        role: true,
-      },
+    // Update user's image across User and UserProfile models
+    const updatedResult = await (prisma as any).$transaction(async (tx: any) => {
+      const updatedUser = await tx.user.update({
+        where: { id: existingUser.id },
+        data: { image: imageUrl },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+        },
+      });
+
+      const profile = await tx.userProfile.upsert({
+        where: { userId: existingUser.id },
+        create: {
+          userId: existingUser.id,
+          image: imageUrl,
+        },
+        update: {
+          image: imageUrl,
+        },
+      });
+
+      return { updatedUser, profile };
     });
 
     return NextResponse.json({
-      user: updatedUser,
+      user: updatedResult.updatedUser,
       message: "Profile image updated successfully",
     });
   } catch (error) {

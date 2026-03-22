@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { hasAdminAccess } from "@/lib/access";
 
 interface Application {
   id: string;
@@ -44,7 +45,7 @@ export default function ApplicationDetail() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session || session.user?.role !== "ADMIN") {
+    if (!session || !hasAdminAccess(session.user)) {
       router.push("/login");
     } else {
       fetchApplication();
@@ -140,7 +141,7 @@ export default function ApplicationDetail() {
                   </h3>
                   <p className="mt-1 text-sm text-gray-900">
                     {key.includes("Date") ? (
-                      new Date(value as string).toLocaleDateString()
+                      <span suppressHydrationWarning>{new Date(value as string).toLocaleDateString()}</span>
                     ) : key === "facebookLink" && value ? (
                       <a
                         href={value as string}

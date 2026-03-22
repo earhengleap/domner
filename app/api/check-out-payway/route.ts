@@ -119,7 +119,6 @@ export async function POST(req: NextRequest) {
       url: ABA_PAWWAY_API_URL,
     };
 
-    console.log("[ABA_PAYWAY_CHECKOUT] Response:", response);
     return NextResponse.json(response);
   } catch (error) {
     console.error("[ABA_PAYWAY_CHECKOUT] Error:", error);

@@ -34,7 +34,6 @@ interface GuidePostBody {
 }
 
 export async function GET(req: Request) {
-  console.log("GET request received at /api/guide-posts");
 
   try {
     const session = await getServerSession(authOptions);
@@ -43,43 +42,97 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const summaryView = searchParams.get("view") === "summary";
+
     const posts = await prisma.guidePost.findMany({
       where: {
         userId: session.user.id
       },
-      select: {
-        id: true,
-        title: true,
-        location: true,
-        area: true,
-        type: true,
-        about: true,
-        packageOffer: true,
-        highlight: true,
-        fullDescription: true,
-        include: true,
-        notSuitableFor: true,
-        importantInfo: true,
-        price: true,
-        photos: true,
-        offlineMapUrl: true,
-        bookletUrl: true,
-        termsUrl: true,
-        createdAt: true,
-        updatedAt: true,
-        itinerary: {
-          select: {
+      select: summaryView
+        ? {
+            id: true,
             title: true,
-            content: true
+            location: true,
+            area: true,
+            type: true,
+            price: true,
+            photos: true,
+            createdAt: true,
+            updatedAt: true,
+            availability: {
+              select: {
+                date: true,
+                isAvailable: true,
+              },
+            },
+            bookings: {
+              where: {
+                status: {
+                  in: ["PENDING", "CONFIRMED"],
+                },
+              },
+              select: {
+                id: true,
+              },
+            },
           }
-        }
-      }
+        : {
+            id: true,
+            title: true,
+            location: true,
+            area: true,
+            type: true,
+            about: true,
+            packageOffer: true,
+            highlight: true,
+            fullDescription: true,
+            include: true,
+            notSuitableFor: true,
+            importantInfo: true,
+            price: true,
+            photos: true,
+            offlineMapUrl: true,
+            bookletUrl: true,
+            termsUrl: true,
+            createdAt: true,
+            updatedAt: true,
+            availability: {
+              select: {
+                date: true,
+                isAvailable: true,
+              },
+            },
+            bookings: {
+              where: {
+                status: {
+                  in: ["PENDING", "CONFIRMED"],
+                },
+              },
+              select: {
+                id: true,
+                date: true,
+                status: true,
+              },
+            },
+            itinerary: {
+              select: {
+                title: true,
+                content: true
+              }
+            }
+          }
     });
 
     const formattedPosts = posts.map(post => ({
       ...post,
-      image: post.photos[0] || '/default-image.jpg',
-      category: post.type
+      image: post.photos[0] || '/default-image.png',
+      category: post.type,
+      availableDateCount: post.availability.filter((item) => item.isAvailable).length,
+      lockedDateCount: post.bookings.length,
+      nextAvailableDate: post.availability
+        .filter((item) => item.isAvailable && item.date >= new Date())
+        .sort((left, right) => left.date.getTime() - right.date.getTime())[0]?.date ?? null,
     }));
 
     return NextResponse.json(formattedPosts);
@@ -90,7 +143,6 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  console.log("POST request received at /api/guide-posts");
 
   try {
     const session = await getServerSession(authOptions);
@@ -100,7 +152,6 @@ export async function POST(req: Request) {
     }
 
     const body: GuidePostBody = await req.json();
-    console.log("Received body:", JSON.stringify(body, null, 2));
 
     const requiredFields: (keyof GuidePostBody)[] = ["title", "location", "area", "type", "price", "itinerary"];
     for (const field of requiredFields) {
@@ -145,7 +196,6 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log("Post created successfully:", post);
 
     return NextResponse.json({ message: "Post created successfully", post }, { status: 201 });
   } catch (error) {
