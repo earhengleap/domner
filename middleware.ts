@@ -28,12 +28,21 @@ const publicFilePattern =
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const authSecret = getAuthSecret();
+  const token = (await getToken({
+    req: request,
+    secret: authSecret,
+  })) as Token | null;
 
   const response = NextResponse.next();
   response.headers.set(
     'Content-Security-Policy',
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.paypal.com https://www.sandbox.paypal.com https://*.paypal.cn;"
   );
+
+  if (token && (path.startsWith("/login") || path.startsWith("/register"))) {
+    const redirectPath = getDefaultAuthenticatedPath(token);
+    return NextResponse.redirect(new URL(redirectPath, request.url));
+  }
 
   // Allow access to login, API routes, dashboard, and public files (including videos)
   if (
@@ -50,11 +59,6 @@ export async function middleware(request: NextRequest) {
   ) {
     return response;
   }
-
-  const token = (await getToken({
-    req: request,
-    secret: authSecret,
-  })) as Token | null;
 
   // If no token and not trying to access allowed paths, redirect to login
   if (!token) {
