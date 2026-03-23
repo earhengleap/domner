@@ -19,6 +19,7 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     GoogleProvider({
+      allowDangerousEmailAccountLinking: true,
       profile(profile):any{
         return {
           id: profile.sub,
@@ -81,6 +82,13 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ account, profile }: any) {
+      if (account?.provider === "google" && profile) {
+        return profile.email_verified === true;
+      }
+
+      return true;
+    },
     async session({ session, token }: any) {
       if (token) {
         session.user.id = token.id;

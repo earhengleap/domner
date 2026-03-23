@@ -10,6 +10,8 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { hasGuideAccess } from "@/lib/access";
 
+type GuideApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export default function NavbarClient() {
   const [scrolled, setScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,6 +22,7 @@ export default function NavbarClient() {
   const { updateUser } = useUser();
   const pathname = usePathname();
   const [selectedRoute, setSelectedRoute] = useState(pathname);
+  const [guideApplicationStatus, setGuideApplicationStatus] = useState<GuideApplicationStatus | null>(null);
   
   // Global transparent-to-solid transition for all routes
   const useTransparentNav = !scrolled;
@@ -47,6 +50,44 @@ export default function NavbarClient() {
   }, [pathname]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchGuideStatus = async () => {
+      if (!isLoggedIn || isGuide) {
+        if (isMounted) {
+          setGuideApplicationStatus(null);
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/guide-data", { cache: "no-store" });
+        if (!response.ok) {
+          if (isMounted) {
+            setGuideApplicationStatus(null);
+          }
+          return;
+        }
+
+        const data = await response.json();
+        if (isMounted) {
+          setGuideApplicationStatus(data.status ?? null);
+        }
+      } catch (error) {
+        console.error("Error fetching guide application status:", error);
+      }
+    };
+
+    void fetchGuideStatus();
+    const interval = window.setInterval(fetchGuideStatus, 15000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [isGuide, isLoggedIn]);
+
+  useEffect(() => {
     if (isMenuOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -63,6 +104,15 @@ export default function NavbarClient() {
     { href: "/explore", label: "Explore" },
     { href: "/posts", label: "Discover" }
   ];
+
+  const isApprovedGuideApplication = guideApplicationStatus === "APPROVED";
+  const showGuideDashboardCta = isGuide || isApprovedGuideApplication;
+  const guideCta =
+    guideApplicationStatus === "PENDING"
+      ? { href: "/guide-pending", label: "Application Pending" }
+      : guideApplicationStatus === "APPROVED"
+        ? { href: "/guide-dashboard", label: "Guide Dashboard" }
+        : { href: "/become-guide", label: "Become a Guide" };
 
   return (
     <div>
@@ -110,7 +160,7 @@ export default function NavbarClient() {
               <>
                 {isLoggedIn ? (
                   <div className="flex items-center space-x-4">
-                    {!isGuide && (
+                    {!showGuideDashboardCta || guideApplicationStatus === "PENDING" ? (
                       <Button
                         className={`hidden md:flex transition-all duration-300 ${
                           !useTransparentNav
@@ -120,7 +170,19 @@ export default function NavbarClient() {
                         asChild
                         variant="outline"
                       >
-                        <Link href="/become-guide">Become a Guide</Link>
+                        <Link href={guideCta.href}>{guideCta.label}</Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        className={`hidden md:flex transition-all duration-300 ${
+                          !useTransparentNav
+                            ? "border-[#A18167] text-[#A18167] hover:bg-[#A18167] hover:text-white"
+                            : "bg-white/10 backdrop-blur-md text-white border-white hover:bg-white/20"
+                        }`}
+                        asChild
+                        variant="outline"
+                      >
+                        <Link href="/guide-dashboard">Guide Dashboard</Link>
                       </Button>
                     )}
                     <div className="transition-transform duration-300 hover:scale-110">
@@ -203,13 +265,22 @@ export default function NavbarClient() {
               
               {mounted && (
                 <>
-                  {isLoggedIn && !isGuide && (
+                  {isLoggedIn && (!showGuideDashboardCta || guideApplicationStatus === "PENDING") && (
                     <Link
-                      href="/become-guide"
+                      href={guideCta.href}
                       className="text-[#A18167] text-lg py-2 hover:text-[#292929] transition-colors duration-200"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Become a Guide
+                      {guideCta.label}
+                    </Link>
+                  )}
+                  {isLoggedIn && showGuideDashboardCta && guideApplicationStatus !== "PENDING" && (
+                    <Link
+                      href="/guide-dashboard"
+                      className="text-[#A18167] text-lg py-2 hover:text-[#292929] transition-colors duration-200"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Guide Dashboard
                     </Link>
                   )}
                   

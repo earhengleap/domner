@@ -8,7 +8,10 @@ function normalizeEmail(email?: string | null) {
 }
 
 function loadSpecialMultiRoleEmails() {
-  const rawEmails = process.env.SPECIAL_MULTI_ROLE_EMAILS ?? "";
+  const rawEmails =
+    process.env.SPECIAL_MULTI_ROLE_EMAILS ??
+    process.env.NEXT_PUBLIC_SPECIAL_MULTI_ROLE_EMAILS ??
+    "";
   return new Set(
     rawEmails
       .split(",")
