@@ -58,7 +58,16 @@ export async function POST(req: Request) {
         area,
         category,
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        caption: true,
+        location: true,
+        area: true,
+        category: true,
+        photos: true,
+        createdAt: true,
+        updatedAt: true,
         user: {
           select: {
             id: true,
@@ -72,12 +81,22 @@ export async function POST(req: Request) {
             likes: true,
           },
         },
+        likes: {
+          select: {
+            id: true,
+            userId: true,
+          },
+        },
       },
     });
 
     return NextResponse.json({
       success: true,
-      post,
+      post: {
+        ...post,
+        viewCount: 0,
+        shareCount: 0,
+      },
     });
 
   } catch (error) {

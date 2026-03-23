@@ -31,6 +31,8 @@ export function transformPost(post: PrismaPost): Post {
     title: post.caption || "",
     price: "0",
     type: post.category,
+    viewCount: post.viewCount ?? 0,
+    shareCount: post.shareCount ?? 0,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     user: {

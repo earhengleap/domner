@@ -14,6 +14,8 @@ export interface Post {
   location: CambodiaProvince;
   area: PostArea;
   category: PostCategory;
+  viewCount: number;
+  shareCount: number;
   createdAt: string;
   updatedAt: string;
   userId: string;

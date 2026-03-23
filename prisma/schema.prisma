@@ -323,6 +323,8 @@ model UserPost {
   category    PostCategory
   photos      String[]
   hashtags  String[]   @default([])
+  viewCount   Int              @default(0)
+  shareCount  Int              @default(0)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -338,13 +340,17 @@ model Comment {
   content   String
   userId    String    @db.Uuid
   postId    String
+  parentId  String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   post      UserPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
 
   @@index([userId])
   @@index([postId])
+  @@index([parentId])
 }
 
 model Like {

@@ -100,7 +100,16 @@ export async function GET(req: Request) {
       take: limit,
       skip: (page - 1) * limit,
       orderBy,
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        caption: true,
+        location: true,
+        area: true,
+        category: true,
+        photos: true,
+        createdAt: true,
+        updatedAt: true,
         user: {
           select: {
             id: true,
@@ -126,7 +135,11 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({
-      posts,
+      posts: posts.map((post) => ({
+        ...post,
+        viewCount: 0,
+        shareCount: 0,
+      })),
       metadata: {
         total,
         page,

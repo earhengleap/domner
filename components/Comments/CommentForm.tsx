@@ -10,9 +10,18 @@ import { toast } from 'react-hot-toast';
 interface CommentFormProps {
   postId: string;
   onSuccess?: () => void;
+  parentId?: string | null;
+  placeholder?: string;
+  submitLabel?: string;
 }
 
-export function CommentForm({ postId, onSuccess }: CommentFormProps) {
+export function CommentForm({
+  postId,
+  onSuccess,
+  parentId = null,
+  placeholder = "Write a comment...",
+  submitLabel = "Add Comment",
+}: CommentFormProps) {
   const [content, setContent] = useState('');
   const queryClient = useQueryClient();
 
@@ -21,7 +30,7 @@ export function CommentForm({ postId, onSuccess }: CommentFormProps) {
       const response = await fetch(`/api/posts/${postId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, parentId }),
       });
 
       if (!response.ok) {
@@ -33,6 +42,7 @@ export function CommentForm({ postId, onSuccess }: CommentFormProps) {
     onSuccess: () => {
       setContent('');
       queryClient.invalidateQueries({ queryKey: ['post-comments', postId] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
       toast.success('Comment added successfully');
       onSuccess?.();
     },
@@ -51,7 +61,7 @@ export function CommentForm({ postId, onSuccess }: CommentFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Textarea
-        placeholder="Write a comment..."
+        placeholder={placeholder}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         className="min-h-[100px]"
@@ -60,7 +70,7 @@ export function CommentForm({ postId, onSuccess }: CommentFormProps) {
         type="submit" 
         disabled={isPending || !content.trim()}
       >
-        {isPending ? 'Adding Comment...' : 'Add Comment'}
+        {isPending ? 'Submitting...' : submitLabel}
       </Button>
     </form>
   );
