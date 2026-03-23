@@ -27,7 +27,42 @@ export default function Register() {
   }, [router, session, status]);
 
   if (status === "loading" || status === "authenticated") {
-    return null;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fdfbf9]">
+        <motion.div
+          animate={{
+            scale: [1, 1.1, 1],
+            rotate: [0, 5, -5, 0],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="mb-4"
+        >
+          <Image
+            src="/DomnerDesktop.png"
+            alt="Domner Logo"
+            width={80}
+            height={80}
+            className="opacity-80"
+          />
+        </motion.div>
+        <div className="w-12 overflow-hidden rounded-full bg-brown-100 h-1">
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: "100%" }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            className="h-full w-full bg-[#A18167]"
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -30,22 +30,28 @@ export default function RegisterForm({ role }: any) {
 
   async function onSubmit(data: any) {
     try {
-      data.role = role || "USER";
       setLoading(true);
       setEmailErr("");
+      const payload = {
+        ...data,
+        name: data.name?.trim(),
+        email: data.email?.trim().toLowerCase(),
+        role: role || "USER",
+      };
+
       const response = await fetch("/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       const responseData = await response.json();
 
       if (response.ok) {
         setLoading(false);
-        toast.success("Account Created Successfully!");
+        toast.success("Account created successfully. Please sign in.");
         reset();
         router.push("/login");
       } else {
@@ -186,7 +192,7 @@ export default function RegisterForm({ role }: any) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => signIn("google")}
+            onClick={() => signIn("google", { callbackUrl: "/" })}
             className="h-12 border-brown-100/50 hover:bg-[#fdfbf9] rounded-xl font-semibold flex items-center justify-center gap-3 transition-all group"
           >
             <Chrome className="w-5 h-5 text-[#EA4335] group-hover:scale-110 transition-transform" />
@@ -195,7 +201,7 @@ export default function RegisterForm({ role }: any) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => signIn("github")}
+            onClick={() => signIn("github", { callbackUrl: "/" })}
             className="h-12 border-brown-100/50 hover:bg-[#fdfbf9] rounded-xl font-semibold flex items-center justify-center gap-3 transition-all group"
           >
             <Github className="w-5 h-5 text-[#24292F] group-hover:scale-110 transition-transform" />

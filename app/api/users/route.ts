@@ -6,25 +6,60 @@ import { createClient } from "@supabase/supabase-js";
 // Add this export to mark the route as dynamic
 export const dynamic = 'force-dynamic';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+function getSupabaseClient() {
+  const supabaseUrl =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey =
+    process.env.SUPABASE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error(
-    "Missing SUPABASE_URL or SUPABASE_KEY in environment variables."
-  );
+  if (!supabaseUrl || !supabaseKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseKey);
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: any) {
   try {
     const { name, email, password, role } = await request.json();
+    const normalizedEmail = email?.trim().toLowerCase();
+    const normalizedName = name?.trim();
+
+    if (!normalizedName || !normalizedEmail || !password) {
+      return NextResponse.json(
+        {
+          message: "Name, email, and password are required.",
+          user: null,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        {
+          message: "Password must be at least 8 characters long.",
+          user: null,
+        },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getSupabaseClient();
+
+    if (!supabase) {
+      return NextResponse.json(
+        {
+          message: "Authentication service is not configured correctly.",
+          user: null,
+        },
+        { status: 500 }
+      );
+    }
 
     // Check if user email already exists in your database
     const userExist = await db.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (userExist) {
@@ -39,18 +74,25 @@ export async function POST(request: any) {
 
     // Register user in Supabase Auth
     const { data, error: authError } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
     });
 
     if (authError) {
       console.error(authError);
+      const duplicateEmail =
+        authError.status === 422 ||
+        authError.message.toLowerCase().includes("already") ||
+        authError.message.toLowerCase().includes("registered");
+
       return NextResponse.json(
         {
-          message: "Supabase Auth Error: " + authError.message,
+          message: duplicateEmail
+            ? "This email is already registered."
+            : `Supabase Auth Error: ${authError.message}`,
           user: null,
         },
-        { status: 500 }
+        { status: duplicateEmail ? 409 : 500 }
       );
     }
 
@@ -72,10 +114,11 @@ export async function POST(request: any) {
     const newUser = await db.user.create({
       data: {
         id: supabaseUserId,
-        name,
-        email,
+        name: normalizedName,
+        email: normalizedEmail,
         hashedPassword,
-        role,
+        role: role || "USER",
+        image: "/default-image.png",
       },
     });
 

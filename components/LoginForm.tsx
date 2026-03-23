@@ -137,7 +137,7 @@ export default function LoginForm() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => signIn("google")}
+          onClick={() => signIn("google", { callbackUrl: "/" })}
           className="h-12 border-brown-100/50 hover:bg-[#fdfbf9] rounded-xl font-semibold flex items-center justify-center gap-3 transition-all"
         >
           <FaGoogle className="text-[#EA4335] w-5 h-5" />
@@ -146,7 +146,7 @@ export default function LoginForm() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => signIn("github")}
+          onClick={() => signIn("github", { callbackUrl: "/" })}
           className="h-12 border-brown-100/50 hover:bg-[#fdfbf9] rounded-xl font-semibold flex items-center justify-center gap-3 transition-all"
         >
           <FaGithub className="text-[#24292F] w-5 h-5" />
