@@ -32,8 +32,8 @@ export default function RegisterForm({ role }: any) {
     try {
       data.role = role || "USER";
       setLoading(true);
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-      const response = await fetch(`${baseUrl}/api/users`, {
+      setEmailErr("");
+      const response = await fetch("/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,7 +54,7 @@ export default function RegisterForm({ role }: any) {
           setEmailErr("This email is already registered");
           toast.error("User with this Email already exists");
         } else {
-          toast.error("Oops! Something went wrong");
+          toast.error(responseData?.message || "Oops! Something went wrong");
         }
       }
     } catch (error) {

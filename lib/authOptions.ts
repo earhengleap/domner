@@ -7,8 +7,23 @@ import { getAuthSecret } from "./authSecret";
 import { compare } from "bcryptjs"; 
 import db from "./db";
 // import { UserRole } from "@prisma/client";
+const prismaAdapter = PrismaAdapter(db);
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db) as NextAuthOptions["adapter"],
+  adapter: {
+    ...prismaAdapter,
+    async createUser(data: any) {
+      return db.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          image: data.image,
+          emailVerified: data.emailVerified ?? null,
+          hashedPassword: "",
+        },
+      }) as any;
+    },
+  } as unknown as NextAuthOptions["adapter"],
   secret: getAuthSecret(),
   debug: false,
   session: {
