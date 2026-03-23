@@ -28,6 +28,7 @@ export default function LoginForm() {
       const loginData = await signIn("credentials", {
         ...data,
         redirect: false,
+        callbackUrl: "/",
       });
       if (loginData?.error) {
         setLoading(false);
@@ -36,7 +37,8 @@ export default function LoginForm() {
         // Sign-in was successful
         toast.success("Login Successful");
         reset();
-        router.push("/");
+        router.replace(loginData?.url || "/");
+        router.refresh();
       }
     } catch (error) {
       setLoading(false);

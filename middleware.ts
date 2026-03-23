@@ -7,6 +7,7 @@ import {
   hasGuideAccess,
   isSpecialMultiRoleUser,
 } from "@/lib/access";
+import { getAuthSecret } from "@/lib/authSecret";
 
 type UserRole = "ADMIN" | "GUIDE" | "USER";
 
@@ -26,6 +27,7 @@ const publicFilePattern =
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const authSecret = getAuthSecret();
 
   const response = NextResponse.next();
   response.headers.set(
@@ -51,7 +53,7 @@ export async function middleware(request: NextRequest) {
 
   const token = (await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: authSecret,
   })) as Token | null;
 
   // If no token and not trying to access allowed paths, redirect to login
