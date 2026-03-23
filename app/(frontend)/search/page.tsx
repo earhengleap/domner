@@ -112,7 +112,7 @@ const SearchResults = () => {
             >
               <CardHeader className="p-0">
                 <Image
-                  src={trip.photos[0] || "/placeholder-image.jpg"}
+                  src={trip.photos[0] || "/default-image.png"}
                   alt={trip.title}
                   width={400}
                   height={300}

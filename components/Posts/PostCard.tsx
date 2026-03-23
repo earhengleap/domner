@@ -1,10 +1,10 @@
 // components/Posts/PostCard.tsx
 'use client'
-import React, { useState } from 'react';  // Add useState import
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, HouseIcon, LandPlot, MapPinned, MessageCircle, PinIcon, Share2, TentTree } from 'lucide-react';
+import { MapPinned, MessageCircle, PinIcon, Share2, TentTree } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -23,27 +23,39 @@ interface PostCardProps {
   post: Post;
 }
 
+function formatEnumLabel(value: string) {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export function PostCard({ post }: PostCardProps) {
-  // Add state for managing dialog
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const mainImage = post.photos[0] || '/placeholder-image.jpg';
+  const mainImage = post.photos[0] || '/default-image.png';
 
   return (
-    <Card className="overflow-hidden">
-      {/* Main Image */}
-      <div className="relative aspect-square">
+    <Card className="overflow-hidden rounded-2xl border-[#e8dbcf] shadow-sm hover:shadow-md transition-shadow">
+      <div className="relative aspect-[4/3]">
         <Image
           src={mainImage}
           alt={post.caption}
           fill
           className="object-cover"
-          priority
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+        <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[#6f4e37]">
+          {formatEnumLabel(post.category)}
+        </div>
+        <div className="absolute left-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-xs text-white backdrop-blur">
+          <MapPinned className="h-3.5 w-3.5" />
+          {formatEnumLabel(post.location)}
+        </div>
       </div>
 
       <CardContent className="p-4">
-        {/* User Info */}
-        <div className="flex items-center space-x-4 mb-4">
+        <div className="mb-4 flex items-center space-x-3">
           <Avatar>
             <AvatarImage src={post.user.image || undefined} />
             <AvatarFallback>
@@ -53,44 +65,44 @@ export function PostCard({ post }: PostCardProps) {
           <div>
             <Link 
               href={`/profile/${post.user.id}`}
-              className="font-medium hover:underline"
+              className="font-medium text-[#2d241d] hover:underline"
             >
               {post.user.name || 'Anonymous'}
             </Link>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
             </p>
           </div>
         </div>
 
-        {/* Caption */}
-        <p className="text-sm text-muted-foreground mb-2">{post.caption}</p>
+        <p className="mb-3 line-clamp-3 text-sm text-slate-600">
+          {post.caption}
+        </p>
 
-        {/* Location & Details */}
-        <div className="space-y-2">
-          <div className="flex items-center text-sm text-muted-foreground space-x-3">
-          <MapPinned className='w-4 h-4'/>
-            <span>{post.location.replace(/_/g, ' ')}</span>
-            <span><TentTree className='w-4 h-4'/></span>
-            <span>{post.area}</span>
-            <span><PinIcon className='w-4 h-4'/></span>
-            <span>{post.category}</span>
+        <div className="space-y-2 border-t border-slate-100 pt-3">
+          <div className="flex items-center text-sm text-muted-foreground gap-2">
+            <TentTree className='h-4 w-4 text-[#8b6a53]'/>
+            <span>{formatEnumLabel(post.area)}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground gap-2">
+            <PinIcon className='h-4 w-4 text-[#8b6a53]'/>
+            <span>{formatEnumLabel(post.category)}</span>
           </div>
         </div>
       </CardContent>
 
-      <CardFooter className="px-4 py-3 border-t flex justify-between">
+      <CardFooter className="border-t px-4 py-3 flex justify-between">
         <div className="flex items-center space-x-4">
           <LikeButton
             postId={post.id}
-            initialIsLiked={post.isLiked}
+            initialIsLiked={Boolean(post.isLiked)}
             likeCount={post._count.likes}
           />
           
           <Dialog open={isCommentsOpen} onOpenChange={setIsCommentsOpen}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm" className="space-x-2">
-                <MessageCircle />
+                <MessageCircle className="h-5 w-5" />
                 <span>{post._count.comments}</span>
               </Button>
             </DialogTrigger>
@@ -108,7 +120,7 @@ export function PostCard({ post }: PostCardProps) {
           </Dialog>
         </div>
         
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" className="text-slate-500 hover:text-[#6f4e37]">
           <Share2 className="h-5 w-5" />
         </Button>
       </CardFooter>

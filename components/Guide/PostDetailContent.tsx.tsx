@@ -13,7 +13,7 @@ export default function PostDetailContent({ post }: { post: GuidePost }) {
       <Card className="mb-6">
         <CardContent className="p-4">
           <div className="grid grid-cols-2 gap-4">
-            <img src={post.photos[0] || '/placeholder-image.jpg'} alt={post.title} className="w-full h-64 object-cover rounded-md" />
+            <img src={post.photos[0] || '/default-image.png'} alt={post.title} className="w-full h-64 object-cover rounded-md" />
             <div>
               <p className="text-xl font-semibold mb-2">{post.location}</p>
               <p className="text-lg text-green-700 mb-2">${post.price.toFixed(2)}</p>

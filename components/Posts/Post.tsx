@@ -18,7 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "./PostCard";
-import { Loader2, Search, SlidersHorizontal, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { CambodiaProvince, PostArea, PostCategory } from '@prisma/client';
 import type { PostsResponse } from '@/types/api';
 
@@ -45,8 +46,16 @@ const LOCATIONS: FilterLocation[] = ['All', ...Object.values(CambodiaProvince)];
 const AREAS: FilterArea[] = ['All', ...Object.values(PostArea)];
 const CATEGORIES: FilterCategory[] = ['All', ...Object.values(PostCategory)];
 
+function formatEnumLabel(value: string) {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export function Posts() {
-  const [showFilters, setShowFilters] = React.useState(false);
+  const [showFilters, setShowFilters] = React.useState(true);
   const [filters, setFilters] = React.useState<Filters>({
     location: 'All',
     area: 'All',
@@ -62,6 +71,7 @@ export function Posts() {
     data,
     isLoading,
     isError,
+    refetch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -88,7 +98,14 @@ export function Posts() {
 
       const res = await fetch(`/api/posts?${searchParams.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch posts');
-      return res.json();
+      const payload: PostsResponse = await res.json();
+
+      payload.posts = payload.posts.map((post) => ({
+        ...post,
+        isLiked: Array.isArray(post.likes) && post.likes.length > 0,
+      }));
+
+      return payload;
     },
     getNextPageParam: (lastPage) => {
       if (lastPage.metadata.hasMore) {
@@ -124,14 +141,31 @@ export function Posts() {
     filters.search !== '' || 
     filters.sortBy !== 'latest';
 
+  const allPosts = React.useMemo(
+    () => data?.pages.flatMap((page) => page.posts) ?? [],
+    [data]
+  );
+
+  const metadata = data?.pages[0]?.metadata;
+  const totalMatches = metadata?.total ?? 0;
+  const visibleCount = allPosts.length;
+  const totalLikes = allPosts.reduce((acc, post) => acc + post._count.likes, 0);
+  const totalComments = allPosts.reduce((acc, post) => acc + post._count.comments, 0);
+  const quickCategoryCounts = React.useMemo(() => {
+    return allPosts.reduce<Record<string, number>>((acc, post) => {
+      acc[post.category] = (acc[post.category] || 0) + 1;
+      return acc;
+    }, {});
+  }, [allPosts]);
+
   if (isError) {
     return (
-      <div className="text-center py-10">
-        <p className="text-red-500">Error loading posts</p>
+      <div className="rounded-2xl border border-red-100 bg-red-50/70 py-10 text-center">
+        <p className="text-red-600 font-medium">Error loading posts</p>
         <Button 
           variant="outline" 
-          onClick={() => window.location.reload()}
-          className="mt-4"
+          onClick={() => refetch()}
+          className="mt-4 border-red-200 text-red-700 hover:bg-red-100"
         >
           Try Again
         </Button>
@@ -141,44 +175,112 @@ export function Posts() {
 
   return (
     <div className="space-y-6">
-      {/* Search and Filter Toggle */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search posts..."
-            value={filters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setShowFilters(!showFilters)}
-          className={showFilters ? 'bg-accent' : ''}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-        </Button>
-      </div>
+      <Card className="border-[#eaded3] shadow-sm">
+        <CardContent className="p-4 sm:p-5 space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-[#8b6a53]">
+                <Sparkles className="h-3.5 w-3.5" />
+                Dynamic Feed
+              </p>
+              <h2 className="text-lg font-semibold text-[#2d241d]">Filter, discover, and browse posts</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`${showFilters ? 'bg-[#f8f2ec] border-[#d7c0af] text-[#6f4e37]' : ''}`}
+              >
+                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                {showFilters ? "Hide Filters" : "Show Filters"}
+              </Button>
+              {isFiltersActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetFilters}
+                  className="text-[#8b6a53] hover:bg-[#f8f2ec]"
+                >
+                  Reset
+                  <X className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
 
-      {/* Filters */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search posts by caption..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              className="h-11 rounded-xl border-[#d8c2ad]/60 bg-white pl-9"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-xl border border-[#eaded3] bg-[#fffdfa] px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-[#8b6a53]">Results</p>
+              <p className="mt-0.5 text-lg font-semibold text-[#2d241d]">
+                {isLoading ? "--" : totalMatches.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#eaded3] bg-[#fffdfa] px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-[#8b6a53]">Loaded</p>
+              <p className="mt-0.5 text-lg font-semibold text-[#2d241d]">{visibleCount.toLocaleString()}</p>
+            </div>
+            <div className="rounded-xl border border-[#eaded3] bg-[#fffdfa] px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-[#8b6a53]">Likes</p>
+              <p className="mt-0.5 text-lg font-semibold text-[#2d241d]">{totalLikes.toLocaleString()}</p>
+            </div>
+            <div className="rounded-xl border border-[#eaded3] bg-[#fffdfa] px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-[#8b6a53]">Comments</p>
+              <p className="mt-0.5 text-lg font-semibold text-[#2d241d]">{totalComments.toLocaleString()}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.filter((category) => category !== 'All').map((category) => {
+              const isActive = filters.category === category;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => handleFilterChange('category', isActive ? 'All' : category)}
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    isActive
+                      ? 'border-[#A18167] bg-[#A18167] text-white'
+                      : 'border-[#d7c0af] bg-white text-[#6f4e37] hover:bg-[#f8f2ec]'
+                  }`}
+                >
+                  {formatEnumLabel(category)}
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#f4ebe3]'}`}>
+                    {quickCategoryCounts[category] || 0}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {showFilters && (
-        <Card>
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="border-slate-200">
+          <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-4">
             <Select
               value={filters.location}
-              onValueChange={(value: FilterLocation) => 
+              onValueChange={(value: FilterLocation) =>
                 handleFilterChange('location', value)
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10 rounded-xl">
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
                 {LOCATIONS.map((location) => (
                   <SelectItem key={location} value={location}>
-                    {location === 'All' ? 'All Locations' : location.replace(/_/g, ' ')}
+                    {location === 'All' ? 'All Locations' : formatEnumLabel(location)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -186,17 +288,17 @@ export function Posts() {
 
             <Select
               value={filters.area}
-              onValueChange={(value: FilterArea) => 
+              onValueChange={(value: FilterArea) =>
                 handleFilterChange('area', value)
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10 rounded-xl">
                 <SelectValue placeholder="Area" />
               </SelectTrigger>
               <SelectContent>
                 {AREAS.map((area) => (
                   <SelectItem key={area} value={area}>
-                    {area === 'All' ? 'All Areas' : area.replace(/_/g, ' ')}
+                    {area === 'All' ? 'All Areas' : formatEnumLabel(area)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -204,17 +306,17 @@ export function Posts() {
 
             <Select
               value={filters.category}
-              onValueChange={(value: FilterCategory) => 
+              onValueChange={(value: FilterCategory) =>
                 handleFilterChange('category', value)
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10 rounded-xl">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((category) => (
                   <SelectItem key={category} value={category}>
-                    {category === 'All' ? 'All Categories' : category}
+                    {category === 'All' ? 'All Categories' : formatEnumLabel(category)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -222,11 +324,11 @@ export function Posts() {
 
             <Select
               value={filters.sortBy}
-              onValueChange={(value: SortBy) => 
+              onValueChange={(value: SortBy) =>
                 handleFilterChange('sortBy', value)
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10 rounded-xl">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -241,55 +343,67 @@ export function Posts() {
         </Card>
       )}
 
-      {/* Active Filters */}
       {isFiltersActive && (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetFilters}
-            className="h-8"
-          >
-            Reset filters
-            <X className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* Posts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data?.pages.map((page, i) =>
-          page.posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))
-        )}
-      </div>
-
-      {/* Empty State */}
-      {data?.pages[0].posts.length === 0 && (
-        <div className="text-center py-10">
-          <p className="text-muted-foreground">No posts found</p>
-          {isFiltersActive && (
-            <Button
-              variant="outline"
-              onClick={handleResetFilters}
-              className="mt-4"
-            >
-              Reset filters
-            </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {filters.location !== 'All' && (
+            <Badge variant="outline" className="border-[#d7c0af] text-[#6f4e37]">
+              Location: {formatEnumLabel(filters.location)}
+            </Badge>
+          )}
+          {filters.area !== 'All' && (
+            <Badge variant="outline" className="border-[#d7c0af] text-[#6f4e37]">
+              Area: {formatEnumLabel(filters.area)}
+            </Badge>
+          )}
+          {filters.category !== 'All' && (
+            <Badge variant="outline" className="border-[#d7c0af] text-[#6f4e37]">
+              Category: {formatEnumLabel(filters.category)}
+            </Badge>
+          )}
+          {filters.search && (
+            <Badge variant="outline" className="border-[#d7c0af] text-[#6f4e37]">
+              Search: {filters.search}
+            </Badge>
           )}
         </div>
       )}
 
-      {/* Loading States */}
-      {(isLoading || isFetchingNextPage) && (
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={`skeleton-${index}`} className="h-[420px] animate-pulse rounded-2xl border border-slate-200 bg-white" />
+          ))}
+        </div>
+      ) : allPosts.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white py-14 text-center">
+          <p className="text-base font-medium text-slate-700">No posts found for your filters.</p>
+          <p className="mt-2 text-sm text-slate-500">Try adjusting category, location, or search keyword.</p>
+          {isFiltersActive && (
+            <Button variant="outline" onClick={handleResetFilters} className="mt-4">
+              Reset Filters
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {allPosts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </div>
+      )}
+
+      {isFetchingNextPage && (
         <div className="flex justify-center py-6">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
       )}
 
-      {/* Load More Trigger */}
       {hasNextPage && <div ref={ref} className="h-1" />}
+      {!hasNextPage && !isLoading && allPosts.length > 0 && (
+        <p className="text-center text-sm text-slate-500 py-2">
+          You have reached the end of the feed.
+        </p>
+      )}
     </div>
   );
 }
