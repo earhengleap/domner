@@ -83,12 +83,13 @@ export default function LoginForm() {
             >
               Password
             </label>
-            <Link
-              href="/forgot-password"
+            <button
+              type="button"
+              onClick={() => router.push("/forgot-password")}
               className="text-xs font-semibold text-[#A18167] hover:text-[#8e6f56] transition-colors"
             >
-              Forgot?
-            </Link>
+              Forgot password
+            </button>
           </div>
           <div className="relative group">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#A18167] transition-colors" />

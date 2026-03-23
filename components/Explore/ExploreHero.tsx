@@ -8,8 +8,11 @@ const ExploreHero = () => {
     <div className="relative h-[400px] lg:h-[500px] w-full overflow-hidden flex items-center justify-center">
       {/* Background Image with Overlay */}
       <div 
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] hover:scale-110"
-        style={{ backgroundImage: "url('/mondolkiri.jpg')" }}
+        className="absolute inset-0 bg-cover bg-center transition-transform hover:scale-110"
+        style={{
+          backgroundImage: "url('/mondolkiri.jpg')",
+          transitionDuration: "2000ms",
+        }}
       >
         <div className="absolute inset-0 bg-black/40 z-10" />
       </div>

@@ -37,6 +37,8 @@ export async function middleware(request: NextRequest) {
   if (
     path.startsWith("/login") ||
     path.startsWith("/register") ||
+    path.startsWith("/forgot-password") ||
+    path.startsWith("/reset-password") ||
     path.startsWith("/api") ||
     path.startsWith("/search") ||
     path.startsWith("/explore") ||

@@ -1,15 +1,8 @@
-import React from 'react';
-import Sidebar from '@/components/Office/Sidebar';
-
-interface LayoutProps {
+interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => (
-  <div className="flex">
-    <Sidebar />
-    <main className="flex-1 p-10">{children}</main>
-  </div>
-);
-
-export default Layout;
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  // Admin-wide layout is now defined at app/(office)/admin/layout.tsx
+  return <>{children}</>;
+}
